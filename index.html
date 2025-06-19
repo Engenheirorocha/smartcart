@@ -90,7 +90,7 @@
 
   <button onclick="toggleManual()">✏️ Adicionar Manualmente</button>
   <div id="manualEntry">
-    <input type="number" id="valorManual" step="0.01" placeholder="Digite o valor" autofocus />
+    <input type="number" id="valorManual" step="0.01" placeholder="Digite o valor" autofocus autofocus />
     <button onclick="adicionarManual()">➕ Adicionar</button>
   </div>
 
@@ -121,8 +121,31 @@
         stream = s;
         video.srcObject = stream;
         video.style.display = "block";
-      }).catch(() => {
+    }).catch(() => {
         navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
+            stream = s;
+            video.srcObject = stream;
+            video.style.display = "block";
+        });
+    });
+        stream = s;
+        video.srcObject = stream;
+        video.style.display = "block";
+      }).catch(() => {
+        
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: { exact: "environment" } }
+}).then(s => {
+        stream = s;
+        video.srcObject = stream;
+        video.style.display = "block";
+    }).catch(() => {
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
+            stream = s;
+            video.srcObject = stream;
+            video.style.display = "block";
+        });
+    });
           stream = s;
           video.srcObject = stream;
           video.style.display = "block";
