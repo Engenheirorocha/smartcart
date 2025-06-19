@@ -129,7 +129,7 @@
     const beep = document.getElementById('beep');
 
     function abrirCamera() {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then(s => {
           stream = s;
           video.srcObject = stream;
@@ -151,37 +151,15 @@
     }
 
     function tirarFoto() {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-
-  // Recorte de uma área central da imagem (reduz ruído visual)
-  const cropWidth = canvas.width * 0.6;
-  const cropHeight = canvas.height * 0.3;
-  const cropX = (canvas.width - cropWidth) / 2;
-  const cropY = (canvas.height - cropHeight) / 2;
-
-  ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-
-  let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    let r = data[i], g = data[i + 1], b = data[i + 2];
-    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    gray = Math.min(255, gray * 1.3 + 30);
-    data[i] = data[i + 1] = data[i + 2] = gray;
-  }
-  ctx.putImageData(imgData, 0, 0);
-
-  const dataURL = canvas.toDataURL('image/png');
-  preview.src = dataURL;
-  preview.onload = () => {
-    preview.style.display = 'block';
-    aplicarOCR(dataURL);
-  };
-}
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const cropWidth = canvas.width * 0.6;
+      const cropHeight = canvas.height * 0.3;
+      const cropX = (canvas.width - cropWidth) / 2;
+      const cropY = (canvas.height - cropHeight) / 2;
+
+      ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
 
       let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       let data = imgData.data;
@@ -222,11 +200,12 @@
     }
 
     function adicionarManual() {
-  const input = document.getElementById('valorManual');
-        const valor = parseFloat(input.value);
+      const input = document.getElementById('valorManual');
+      const valor = parseFloat(input.value);
       if (!isNaN(valor)) {
         adicionarAoTotal(valor);
-            input.value = '';\n    input.focus();
+        input.value = '';
+        input.focus();
       } else {
         alert('Digite um valor válido.');
       }
@@ -243,6 +222,11 @@
     function toggleManual() {
       manualEntry.style.display = manualEntry.style.display === 'none' ? 'block' : 'none';
     }
+
+    document.getElementById('valorManual').addEventListener('focus', () => {
+      fecharCamera();
+      preview.style.display = 'none';
+    });
   </script>
 </body>
 </html>
