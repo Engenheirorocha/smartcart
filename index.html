@@ -194,10 +194,11 @@
     }
 
     function adicionarManual() {
-      const valor = parseFloat(document.getElementById('valorManual').value);
+  const input = document.getElementById('valorManual');
+        const valor = parseFloat(input.value);
       if (!isNaN(valor)) {
         adicionarAoTotal(valor);
-        document.getElementById('valorManual').value = '';
+            input.value = '';\n    input.focus();
       } else {
         alert('Digite um valor válido.');
       }
