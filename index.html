@@ -92,7 +92,8 @@
   <div id="total">Total: R$ 0,00</div>
   <ul id="listaItens"></ul>
 
-  <button onclick="tirarFoto()">📸 Tirar Foto do Preço</button>
+  <button onclick="abrirCamera()">📷 Abrir Câmera</button>
+  <button onclick="tirarFoto()">📸 Capturar Preço</button>
   <button onclick="toggleManual()">✏️ Adicionar Manualmente</button>
 
   <div id="manualEntry">
@@ -117,23 +118,25 @@
     const listaItens = document.getElementById('listaItens');
     const manualEntry = document.getElementById('manualEntry');
     const beep = document.getElementById('beep');
+    let streamAtivo = false;
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(stream => {
-        video.srcObject = stream;
-      })
-      .catch(err => {
-        alert('Erro ao acessar a câmera traseira: ' + err);
-      });
+    function abrirCamera() {
+      if (!streamAtivo) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+          .then(stream => {
+            video.srcObject = stream;
+            video.style.display = 'block';
+            streamAtivo = true;
+          })
+          .catch(err => {
+            alert('Erro ao acessar a câmera traseira: ' + err);
+          });
+      }
+    }
 
     function tirarFoto() {
-      canvas.style.display = 'block';
-      preview.style.display = 'none';
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataURL = canvas.toDataURL('image/png');
-      preview.src = dataURL;
-      preview.style.display = 'block';
-
       Tesseract.recognize(dataURL, 'por', {
         logger: m => console.log(m)
       }).then(({ data: { text } }) => {
@@ -144,6 +147,7 @@
           if (!isNaN(valor)) {
             adicionarAoTotal(valor);
             beep.play();
+            preview.style.display = 'none';
           }
         } else {
           alert("Preço não reconhecido. Tente novamente.");
