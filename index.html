@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#4CAF50" />
+  <link rel="icon" href="icon.png" />
   <title>SmartCart</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
@@ -51,7 +52,7 @@
       display: none;
     }
     #captureBtn {
-      display: none;
+      display: block;
       font-size: 2em;
       padding: 24px 36px;
       margin: 16px auto 0 auto;
@@ -73,13 +74,13 @@
       position: relative;
       overflow: hidden;
     }
-    ul li span {
+    ul li::after {
+      content: '🗑️';
       position: absolute;
       right: 15px;
       top: 50%;
       transform: translateY(-50%);
       opacity: 0.7;
-      cursor: pointer;
     }
     #manualEntry {
       display: none;
@@ -96,6 +97,7 @@
   <h1>SmartCart</h1>
   <div id="total">Total: R$ 0,00</div>
   <ul id="listaItens"></ul>
+<div id="opcoesReconhecidas"></div>
 
   <button onclick="abrirCamera()">📷 Abrir Câmera</button>
   <button onclick="fecharCamera()">❌ Fechar Câmera</button>
@@ -128,13 +130,12 @@
     const beep = document.getElementById('beep');
 
     function abrirCamera() {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
         .then(s => {
           stream = s;
           video.srcObject = stream;
           video.style.display = 'block';
           preview.style.display = 'none';
-          document.getElementById('captureBtn').style.display = 'block';
         })
         .catch(err => {
           alert('Erro ao acessar a câmera traseira: ' + err);
@@ -145,26 +146,76 @@
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         video.srcObject = null;
+        video.style.display = 'none';
+        preview.style.display = 'none';
       }
-      video.style.display = 'none';
-      preview.style.display = 'none';
-      document.getElementById('captureBtn').style.display = 'none';
     }
 
-    function toggleManual() {
-      fecharCamera();
-      preview.style.display = 'none';
-      if (manualEntry.style.display === 'none') {
-        manualEntry.style.display = 'block';
-        document.getElementById('valorManual').focus();
-      } else {
-        manualEntry.style.display = 'none';
+    function tirarFoto() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i], g = data[i + 1], b = data[i + 2];
+    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    gray = Math.min(255, gray * 1.3 + 30);
+    data[i] = data[i + 1] = data[i + 2] = gray;
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  const dataURL = canvas.toDataURL('image/png');
+  preview.src = dataURL;
+  preview.onload = () => {
+    preview.style.display = 'block';
+    aplicarOCR(dataURL);
+  };
+}
+    }
+
+    function aplicarOCR(dataURL) {
+  Tesseract.recognize(dataURL, 'eng+por', {
+    tessedit_char_whitelist: '0123456789R$,.',
+    preserve_interword_spaces: 1
+  }).then(({ data: { text } }) => {
+    console.log("Texto reconhecido:", text);
+    const regex = /(?:R\$?\s*)?(\d{1,3}(?:[.,]?\d{3})*[.,]\d{2})/g;
+    let match;
+    let encontrados = [];
+    while ((match = regex.exec(text)) !== null) {
+      const valor = parseFloat(match[1].replace(',', '.'));
+      if (!isNaN(valor)) {
+        encontrados.push(valor);
       }
     }
+
+    const container = document.getElementById('opcoesReconhecidas');
+    container.innerHTML = '';
+
+    if (encontrados.length > 0) {
+      const pergunta = document.createElement('p');
+      pergunta.textContent = 'Qual valor deseja adicionar ao total?';
+      container.appendChild(pergunta);
+
+      encontrados.forEach(valor => {
+        const btn = document.createElement('button');
+        btn.textContent = '➕ R$ ' + valor.toFixed(2);
+        btn.onclick = () => {
+          adicionarAoTotal(valor);
+          beep.play();
+          container.innerHTML = ''; // limpa após a escolha
+        };
+        container.appendChild(btn);
+      });
+    }
+  });
+}
 
     function adicionarManual() {
       const input = document.getElementById('valorManual');
-      const valor = parseFloat(input.value.replace(',', '.'));
+      const valor = parseFloat(input.value);
       if (!isNaN(valor)) {
         adicionarAoTotal(valor);
         input.value = '';
@@ -177,62 +228,13 @@
     function adicionarAoTotal(valor) {
       total += valor;
       document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
-
       const li = document.createElement('li');
-      li.innerHTML = '• R$ ' + valor.toFixed(2) + ' <span onclick="removerItem(this)">🗑️</span>';
-      li.dataset.valor = valor.toFixed(2);
-
+      li.textContent = '• R$ ' + valor.toFixed(2);
       listaItens.appendChild(li);
     }
 
-    function removerItem(el) {
-      const li = el.parentElement;
-      const valorItem = parseFloat(li.dataset.valor);
-      total -= valorItem;
-      document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
-      li.remove();
-    }
-
-    function tirarFoto() {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let data = imgData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        let r = data[i], g = data[i + 1], b = data[i + 2];
-        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        gray = Math.min(255, gray * 1.3 + 30);
-        data[i] = data[i + 1] = data[i + 2] = gray;
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      const dataURL = canvas.toDataURL('image/png');
-      preview.src = dataURL;
-      preview.onload = () => {
-        preview.style.display = 'block';
-        aplicarOCR(dataURL);
-      };
-    }
-
-    function aplicarOCR(dataURL) {
-      Tesseract.recognize(dataURL, 'eng+por', {
-        tessedit_char_whitelist: '0123456789R$,.',
-        preserve_interword_spaces: 1
-      }).then(({ data: { text } }) => {
-        const regex = /(?:R\$?\s*)?(\d{1,3}(?:[.,]?\d{3})*[.,]\d{2})/g;
-        const match = regex.exec(text);
-        if (match && match[1]) {
-          const valor = parseFloat(match[1].replace(',', '.'));
-          if (!isNaN(valor)) {
-            adicionarAoTotal(valor);
-            beep.play();
-          }
-        } else {
-          alert("Preço não reconhecido. Tente novamente.");
-        }
-      });
+    function toggleManual() {
+      manualEntry.style.display = manualEntry.style.display === 'none' ? 'block' : 'none';
     }
 
     document.getElementById('valorManual').addEventListener('focus', () => {
