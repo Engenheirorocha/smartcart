@@ -3,9 +3,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#4CAF50" />
-  <link rel="icon" href="icon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartCart</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
@@ -20,76 +18,63 @@
       font-size: 2.5em;
     }
     #total {
-      font-size: 2.5em;
-      margin: 30px 0 20px 0;
+      font-size: 2.3em;
+      margin: 20px 0;
       color: #1B5E20;
     }
     button, input[type="number"] {
       font-size: 1.6em;
-      padding: 20px 30px;
-      margin: 12px 8px;
-      border-radius: 14px;
+      padding: 16px 24px;
+      margin: 8px;
+      border-radius: 12px;
     }
     button {
       background-color: #4CAF50;
       color: white;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      transition: background 0.3s;
     }
     button:hover {
       background-color: #388E3C;
     }
-    video, canvas, #previewImage {
+    video, canvas {
       display: block;
       margin: 20px auto;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       max-width: 90%;
     }
     #previewImage {
       display: none;
     }
-    #captureBtn {
+    #opcoesReconhecidas {
+      margin-top: 20px;
+    }
+    #opcoesReconhecidas button {
       display: block;
-      font-size: 2em;
-      padding: 24px 36px;
-      margin: 16px auto 0 auto;
+      margin: 8px auto;
+      width: 60%;
+    }
+    #manualEntry {
+      margin-top: 10px;
+      display: none;
+    }
+    input[type="number"] {
+      width: 200px;
     }
     ul {
       list-style: none;
       padding: 0;
-      text-align: center;
-      margin-top: 20px;
     }
     ul li {
-      font-size: 1.6em;
-      color: #2E7D32;
-      margin: 6px auto;
-      background-color: #e0f2f1;
+      font-size: 1.4em;
+      margin: 6px;
+      background: #e0f2f1;
       padding: 10px;
       border-radius: 10px;
       width: 80%;
-      position: relative;
-      overflow: hidden;
-    }
-    ul li::after {
-      content: '🗑️';
-      position: absolute;
-      right: 15px;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: 0.7;
-    }
-    #manualEntry {
-      display: none;
-      margin-top: 10px;
-    }
-    input[type="number"] {
-      width: 220px;
-      border: 1px solid #ccc;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      margin-left: auto;
+      margin-right: auto;
     }
   </style>
 </head>
@@ -97,157 +82,120 @@
   <h1>SmartCart</h1>
   <div id="total">Total: R$ 0,00</div>
   <ul id="listaItens"></ul>
-<div id="opcoesReconhecidas"></div>
 
   <button onclick="abrirCamera()">📷 Abrir Câmera</button>
   <button onclick="fecharCamera()">❌ Fechar Câmera</button>
   <video id="video" width="640" height="480" autoplay playsinline style="display:none;"></video>
-  <button id="captureBtn" onclick="tirarFoto()">📸 Capturar Preço</button>
-
-  <img id="previewImage" src="" alt="Prévia da Foto">
+  <button onclick="tirarFoto()">📸 Capturar Preço</button>
 
   <button onclick="toggleManual()">✏️ Adicionar Manualmente</button>
   <div id="manualEntry">
-    <input type="number" id="valorManual" step="0.01" placeholder="Digite o valor">
+    <input type="number" id="valorManual" step="0.01" placeholder="Digite o valor" autofocus />
     <button onclick="adicionarManual()">➕ Adicionar</button>
   </div>
 
   <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+  <div id="opcoesReconhecidas"></div>
 
   <audio id="beep">
-    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg" />
+    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
   </audio>
 
   <script>
     let total = 0;
     let stream = null;
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const preview = document.getElementById('previewImage');
-    const listaItens = document.getElementById('listaItens');
-    const manualEntry = document.getElementById('manualEntry');
-    const beep = document.getElementById('beep');
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const listaItens = document.getElementById("listaItens");
+    const manualEntry = document.getElementById("manualEntry");
+    const beep = document.getElementById("beep");
 
-    
-function abrirCamera() {
-  
-navigator.mediaDevices.getUserMedia({
-  video: {
-    facingMode: { exact: "environment" },
-    width: { ideal: 1280 },
-    height: { ideal: 720 }
-  }
-}).then(s => {
-    stream = s;
-    video.srcObject = stream;
-    video.style.display = 'block';
-          preview.style.display = 'none';
-        })
-        .catch(err => {
-          alert('Erro ao acessar a câmera traseira: ' + err);
+    function abrirCamera() {
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      }).then(s => {
+        stream = s;
+        video.srcObject = stream;
+        video.style.display = "block";
+      }).catch(() => {
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
+          stream = s;
+          video.srcObject = stream;
+          video.style.display = "block";
         });
+      });
     }
 
     function fecharCamera() {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         video.srcObject = null;
-        video.style.display = 'none';
-        preview.style.display = 'none';
+        video.style.display = "none";
       }
     }
 
     function tirarFoto() {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    let r = data[i], g = data[i + 1], b = data[i + 2];
-    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    gray = Math.min(255, gray * 1.3 + 30);
-    data[i] = data[i + 1] = data[i + 2] = gray;
-  }
-  ctx.putImageData(imgData, 0, 0);
-
-  const dataURL = canvas.toDataURL('image/png');
-  preview.src = dataURL;
-  preview.onload = () => {
-    preview.style.display = 'block';
-    aplicarOCR(dataURL);
-  };
-}
+      const dataURL = canvas.toDataURL("image/png");
+      aplicarOCR(dataURL);
     }
 
     function aplicarOCR(dataURL) {
-  Tesseract.recognize(dataURL, 'eng+por', {
-    tessedit_char_whitelist: '0123456789R$,.',
-    preserve_interword_spaces: 1
-  }).then(({ data: { text } }) => {
-    console.log("Texto reconhecido:", text);
-    const regex = /(?:R\$?\s*)?(\d{1,3}(?:[.,]?\d{3})*[.,]\d{2})/g;
-    let match;
-    let encontrados = [];
-    while ((match = regex.exec(text)) !== null) {
-      const valor = parseFloat(match[1].replace(',', '.'));
-      if (!isNaN(valor)) {
-        encontrados.push(valor);
-      }
-    }
+      Tesseract.recognize(dataURL, 'eng+por').then(({ data: { text } }) => {
+        const regex = /(?:R\$?\s*)?(\d{1,3}(?:[.,]?\d{3})*[.,]\d{2})/g;
+        let match;
+        let encontrados = [];
+        while ((match = regex.exec(text)) !== null) {
+          const valor = parseFloat(match[1].replace(',', '.'));
+          if (!isNaN(valor)) encontrados.push(valor);
+        }
 
-    const container = document.getElementById('opcoesReconhecidas');
-    container.innerHTML = '';
-
-    if (encontrados.length > 0) {
-      const pergunta = document.createElement('p');
-      pergunta.textContent = 'Qual valor deseja adicionar ao total?';
-      container.appendChild(pergunta);
-
-      encontrados.forEach(valor => {
-        const btn = document.createElement('button');
-        btn.textContent = '➕ R$ ' + valor.toFixed(2);
-        btn.onclick = () => {
-          adicionarAoTotal(valor);
-          beep.play();
-          container.innerHTML = ''; // limpa após a escolha
-        };
-        container.appendChild(btn);
+        const container = document.getElementById("opcoesReconhecidas");
+        container.innerHTML = "";
+        if (encontrados.length > 0) {
+          const pergunta = document.createElement("p");
+          pergunta.textContent = "Qual valor deseja adicionar ao total?";
+          container.appendChild(pergunta);
+          encontrados.forEach(valor => {
+            const btn = document.createElement("button");
+            btn.textContent = "➕ R$ " + valor.toFixed(2);
+            btn.onclick = () => {
+              adicionarAoTotal(valor);
+              beep.play();
+              container.innerHTML = "";
+            };
+            container.appendChild(btn);
+          });
+        }
       });
-    }
-  });
-}
-
-    function adicionarManual() {
-      const input = document.getElementById('valorManual');
-      const valor = parseFloat(input.value);
-      if (!isNaN(valor)) {
-        adicionarAoTotal(valor);
-        input.value = '';
-        input.focus();
-      } else {
-        alert('Digite um valor válido.');
-      }
     }
 
     function adicionarAoTotal(valor) {
       total += valor;
-      document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
-      const li = document.createElement('li');
-      li.textContent = '• R$ ' + valor.toFixed(2);
+      document.getElementById("total").innerText = "Total: R$ " + total.toFixed(2);
+      const li = document.createElement("li");
+      li.textContent = "• R$ " + valor.toFixed(2);
       listaItens.appendChild(li);
     }
 
-    function toggleManual() {
-      manualEntry.style.display = manualEntry.style.display === 'none' ? 'block' : 'none';
+    function adicionarManual() {
+      const valor = parseFloat(document.getElementById("valorManual").value);
+      if (!isNaN(valor)) {
+        adicionarAoTotal(valor);
+        beep.play();
+        document.getElementById("valorManual").value = "";
+      }
     }
 
-    document.getElementById('valorManual').addEventListener('focus', () => {
-      fecharCamera();
-      preview.style.display = 'none';
-    });
+    function toggleManual() {
+      const entry = document.getElementById("manualEntry");
+      entry.style.display = entry.style.display === "none" ? "block" : "none";
+      fecharCamera(); // fecha câmera se abrir entrada manual
+    }
   </script>
 </body>
 </html>
