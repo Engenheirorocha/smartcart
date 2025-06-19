@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -40,12 +41,15 @@
     button:hover {
       background-color: #388E3C;
     }
-    video, canvas {
+    video, canvas, #previewImage {
       display: block;
       margin: 20px auto;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       max-width: 90%;
+    }
+    #previewImage {
+      display: none;
     }
     #captureBtn {
       display: block;
@@ -70,13 +74,14 @@
       position: relative;
       overflow: hidden;
     }
-    ul li::after {
-      content: '🗑️';
+    ul li span.delete {
       position: absolute;
       right: 15px;
       top: 50%;
       transform: translateY(-50%);
       opacity: 0.7;
+      cursor: pointer;
+      font-size: 1.2em;
     }
     #manualEntry {
       display: none;
@@ -113,6 +118,8 @@
   <video id="video" width="640" height="480" autoplay playsinline style="display:none;"></video>
   <button id="captureBtn" onclick="tirarFoto()">📸 Capturar Preço</button>
 
+  <img id="previewImage" src="" alt="Prévia da Foto">
+
   <div id="buttonsSelecionar"></div>
 
   <button onclick="toggleManual()">✏️ Adicionar Manualmente</button>
@@ -138,6 +145,7 @@
     const beep = document.getElementById('beep');
     const inputManual = document.getElementById('valorManual');
     const buttonsSelecionar = document.getElementById('buttonsSelecionar');
+    const preview = document.getElementById('previewImage');
 
     function abrirCamera() {
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
@@ -170,6 +178,8 @@
       canvas.height = video.videoHeight;
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataURL = canvas.toDataURL('image/png');
+      preview.src = dataURL;
+      preview.style.display = 'block';
       aplicarOCR(dataURL);
     }
 
@@ -214,6 +224,15 @@
       document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
       const li = document.createElement('li');
       li.textContent = '• R$ ' + valor.toFixed(2);
+      const excluir = document.createElement('span');
+      excluir.textContent = '🗑️';
+      excluir.className = 'delete';
+      excluir.onclick = () => {
+        listaItens.removeChild(li);
+        total -= valor;
+        document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
+      };
+      li.appendChild(excluir);
       listaItens.appendChild(li);
     }
 
