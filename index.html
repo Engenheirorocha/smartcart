@@ -94,7 +94,10 @@
     <button onclick="adicionarManual()">➕ Adicionar</button>
   </div>
 
-  <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+  
+<canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+<img id="previewImage" src="" alt="Prévia da Foto" style="margin: 20px auto; display: block; max-width: 90%; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"/>
+
   <div id="opcoesReconhecidas"></div>
 
   <audio id="beep">
@@ -135,10 +138,16 @@
       }
     }
 
-    function tirarFoto() {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+function tirarFoto() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataURL = canvas.toDataURL("image/png");
+  document.getElementById("previewImage").src = dataURL;
+  document.getElementById("previewImage").style.display = "block";
+  aplicarOCR(dataURL);
+
 
       const dataURL = canvas.toDataURL("image/png");
       aplicarOCR(dataURL);
