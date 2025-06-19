@@ -129,12 +129,18 @@
     const manualEntry = document.getElementById('manualEntry');
     const beep = document.getElementById('beep');
 
-    function abrirCamera() {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
-        .then(s => {
-          stream = s;
-          video.srcObject = stream;
-          video.style.display = 'block';
+    
+function abrirCamera() {
+  navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: { exact: "environment" },
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
+    }
+  }).then(s => {
+    stream = s;
+    video.srcObject = stream;
+    video.style.display = 'block';
           preview.style.display = 'none';
         })
         .catch(err => {
