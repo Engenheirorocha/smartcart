@@ -131,13 +131,14 @@
 
     
 function abrirCamera() {
-  navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: { exact: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 }
-    }
-  }).then(s => {
+  
+navigator.mediaDevices.getUserMedia({
+  video: {
+    facingMode: { exact: "environment" },
+    width: { ideal: 1280 },
+    height: { ideal: 720 }
+  }
+}).then(s => {
     stream = s;
     video.srcObject = stream;
     video.style.display = 'block';
