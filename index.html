@@ -175,7 +175,27 @@
       }
     }
 
-    function adicionarAoTotal(valor) {
+    
+function adicionarAoTotal(valor) {
+  total += valor;
+  document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
+
+  const li = document.createElement('li');
+  li.textContent = '• R$ ' + valor.toFixed(2);
+  li.dataset.valor = valor.toFixed(2); // valor salvo no item
+
+  li.addEventListener('click', function () {
+    if (confirm('Remover este item?')) {
+      const valorItem = parseFloat(this.dataset.valor);
+      total -= valorItem;
+      document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
+      this.remove();
+    }
+  });
+
+  listaItens.appendChild(li);
+}
+
       total += valor;
       document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
       const li = document.createElement('li');
