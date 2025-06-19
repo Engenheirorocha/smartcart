@@ -52,7 +52,7 @@
       display: none;
     }
     #captureBtn {
-      display: block;
+      display: none;
       font-size: 2em;
       padding: 24px 36px;
       margin: 16px auto 0 auto;
@@ -129,12 +129,13 @@
     const beep = document.getElementById('beep');
 
     function abrirCamera() {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
         .then(s => {
           stream = s;
           video.srcObject = stream;
           video.style.display = 'block';
           preview.style.display = 'none';
+          document.getElementById('captureBtn').style.display = 'block';
         })
         .catch(err => {
           alert('Erro ao acessar a câmera traseira: ' + err);
@@ -145,33 +146,64 @@
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
         video.srcObject = null;
-        video.style.display = 'none';
-        preview.style.display = 'none';
+      }
+      video.style.display = 'none';
+      preview.style.display = 'none';
+      document.getElementById('captureBtn').style.display = 'none';
+    }
+
+    function toggleManual() {
+      fecharCamera();
+      preview.style.display = 'none';
+      if (manualEntry.style.display === 'none') {
+        manualEntry.style.display = 'block';
+        document.getElementById('valorManual').focus();
+      } else {
+        manualEntry.style.display = 'none';
       }
     }
 
+    function adicionarManual() {
+      const input = document.getElementById('valorManual');
+      const valor = parseFloat(input.value.replace(',', '.'));
+      if (!isNaN(valor)) {
+        adicionarAoTotal(valor);
+        input.value = '';
+        input.focus();
+      } else {
+        alert('Digite um valor válido.');
+      }
+    }
+
+    function adicionarAoTotal(valor) {
+      total += valor;
+      document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
+      const li = document.createElement('li');
+      li.textContent = '• R$ ' + valor.toFixed(2);
+      listaItens.appendChild(li);
+    }
+
     function tirarFoto() {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    let r = data[i], g = data[i + 1], b = data[i + 2];
-    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    gray = Math.min(255, gray * 1.3 + 30);
-    data[i] = data[i + 1] = data[i + 2] = gray;
-  }
-  ctx.putImageData(imgData, 0, 0);
+      let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      let data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        let r = data[i], g = data[i + 1], b = data[i + 2];
+        let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        gray = Math.min(255, gray * 1.3 + 30);
+        data[i] = data[i + 1] = data[i + 2] = gray;
+      }
+      ctx.putImageData(imgData, 0, 0);
 
-  const dataURL = canvas.toDataURL('image/png');
-  preview.src = dataURL;
-  preview.onload = () => {
-    preview.style.display = 'block';
-    aplicarOCR(dataURL);
-  };
-}
+      const dataURL = canvas.toDataURL('image/png');
+      preview.src = dataURL;
+      preview.onload = () => {
+        preview.style.display = 'block';
+        aplicarOCR(dataURL);
+      };
     }
 
     function aplicarOCR(dataURL) {
@@ -192,30 +224,6 @@
           alert("Preço não reconhecido. Tente novamente.");
         }
       });
-    }
-
-    function adicionarManual() {
-      const input = document.getElementById('valorManual');
-      const valor = parseFloat(input.value);
-      if (!isNaN(valor)) {
-        adicionarAoTotal(valor);
-        input.value = '';
-        input.focus();
-      } else {
-        alert('Digite um valor válido.');
-      }
-    }
-
-    function adicionarAoTotal(valor) {
-      total += valor;
-      document.getElementById('total').innerText = 'Total: R$ ' + total.toFixed(2);
-      const li = document.createElement('li');
-      li.textContent = '• R$ ' + valor.toFixed(2);
-      listaItens.appendChild(li);
-    }
-
-    function toggleManual() {
-      manualEntry.style.display = manualEntry.style.display === 'none' ? 'block' : 'none';
     }
 
     document.getElementById('valorManual').addEventListener('focus', () => {
