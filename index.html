@@ -10,13 +10,23 @@
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
-      background: #f0f0f0;
+      background: #121212;
+      color: #FFFFFF;
     }
     video {
       width: 100%;
       max-width: 400px;
       border-radius: 10px;
       margin-bottom: 10px;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      pointer-events: none;
     }
     #precos {
       display: flex;
@@ -25,8 +35,8 @@
       gap: 10px;
     }
     .preco-btn {
-      font-size: 1.2em;
-      padding: 10px 20px;
+      font-size: 1.464em;
+      padding: 12.2px 24.4px;
       background: #4CAF50;
       color: white;
       border: none;
@@ -55,22 +65,27 @@
     #total {
       font-size: 2em;
       margin-top: 20px;
-      color: #2E7D32;
+      color: #81C784;
     }
   </style>
 </head>
 <body>
   <h1>SmartCart OCR</h1>
-  <video id="video" autoplay playsinline></video>
+  <div style="position: relative; display: inline-block;">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
   <div id="precos"></div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
 
   <script>
     const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
     let total = 0;
     let canvas = document.createElement('canvas');
+    let isProcessing = false;
 
     async function iniciarCamera() {
       try {
@@ -96,18 +111,42 @@
       btn.remove();
     }
 
+    function desenharROI() {
+      const ctx = overlay.getContext('2d');
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      const w = overlay.width * 0.5;
+      const h = overlay.height * 0.2;
+      const x = (overlay.width - w) / 2;
+      const y = (overlay.height - h) / 2;
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, w, h);
+    }
+
     async function capturarImagemEProcessar() {
+      if (isProcessing || video.videoWidth === 0) return;
+      isProcessing = true;
+      desenharROI();
+
       const ctx = canvas.getContext('2d');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const roiWidth = video.videoWidth * 0.5;
+      const roiHeight = video.videoHeight * 0.2;
+      const roiX = (video.videoWidth - roiWidth) / 2;
+      const roiY = (video.videoHeight - roiHeight) / 2;
+
+      canvas.width = roiWidth;
+      canvas.height = roiHeight;
+      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
 
       let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < imageData.data.length; i += 4) {
         let avg = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
-        imageData.data[i] = avg;
-        imageData.data[i + 1] = avg;
-        imageData.data[i + 2] = avg;
+        let bin = avg > 128 ? 255 : 0;
+        imageData.data[i] = bin;
+        imageData.data[i + 1] = bin;
+        imageData.data[i + 2] = bin;
       }
       ctx.putImageData(imageData, 0, 0);
 
@@ -141,8 +180,10 @@
           }
         });
       } else {
-        precosDiv.innerHTML = '<p>Nenhum preço detectado.</p>';
+        precosDiv.innerHTML = '<p>Ajuste o produto no centro da tela.</p>';
       }
+
+      isProcessing = false;
     }
 
     setInterval(capturarImagemEProcessar, 2000);
