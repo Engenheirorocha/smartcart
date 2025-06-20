@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -55,6 +54,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      animation: none;
+      transition: transform 0.2s ease;
+    }
+    .preco-btn.pulse {
+      transform: scale(1.1);
     }
     .lixeira {
       position: absolute;
@@ -107,11 +111,14 @@
   </div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
 
+  <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
   <script>
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
+    const bip = document.getElementById('bip-audio');
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
@@ -130,12 +137,17 @@
       }
     }
 
-    function adicionarPreco(valor) {
+    function adicionarPreco(valor, btn) {
       total += valor;
       ultimoValor = valor;
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
       sugestoesFixas = false;
+      bip.play();
+      if (btn) {
+        btn.classList.add('pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 300);
+      }
     }
 
     function removerPreco(btn, valor) {
@@ -212,7 +224,7 @@
             const btn = document.createElement('div');
             btn.className = 'preco-btn';
             btn.innerText = `R$ ${valor.toFixed(2)}`;
-            btn.onclick = () => adicionarPreco(valor);
+            btn.onclick = () => adicionarPreco(valor, btn);
             precosDiv.appendChild(btn);
           }
         });
