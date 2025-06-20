@@ -13,6 +13,13 @@
       background: #121212;
       color: #FFFFFF;
     }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
     video {
       width: 100%;
       max-width: 400px;
@@ -30,9 +37,11 @@
     }
     #precos {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      flex-direction: column;
+      flex-wrap: nowrap;
       gap: 10px;
+      max-height: 500px;
+      overflow-y: auto;
     }
     .preco-btn {
       font-size: 1.464em;
@@ -71,11 +80,13 @@
 </head>
 <body>
   <h1>SmartCart OCR</h1>
-  <div style="position: relative; display: inline-block;">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="overlay"></canvas>
+  <div class="container">
+    <div style="position: relative;">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div id="precos"></div>
   </div>
-  <div id="precos"></div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
 
   <script>
