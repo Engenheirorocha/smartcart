@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -54,11 +55,6 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      animation: none;
-      transition: transform 0.2s ease;
-    }
-    .preco-btn.pulse {
-      transform: scale(1.1);
     }
     .lixeira {
       position: absolute;
@@ -92,6 +88,33 @@
       margin-top: 20px;
       color: #81C784;
     }
+    #popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+    #popup input {
+      font-size: 1.2em;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+    #popup button {
+      font-size: 1.2em;
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+    }
   </style>
 </head>
 <body>
@@ -106,19 +129,23 @@
       <div class="btn-controle">
         <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
         <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
+        <button onclick="abrirPopup()">➕ Adicionar manualmente</button>
       </div>
     </div>
   </div>
+  <div id="popup">
+    <input type="text" id="valorManual" placeholder="Ex: 10.50">
+    <button onclick="adicionarManual()">Adicionar</button>
+  </div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
-
-  <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
   <script>
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
-    const bip = document.getElementById('bip-audio');
+    const popup = document.getElementById('popup');
+    const valorManual = document.getElementById('valorManual');
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
@@ -137,17 +164,12 @@
       }
     }
 
-    function adicionarPreco(valor, btn) {
+    function adicionarPreco(valor) {
       total += valor;
       ultimoValor = valor;
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
       sugestoesFixas = false;
-      bip.play();
-      if (btn) {
-        btn.classList.add('pulse');
-        setTimeout(() => btn.classList.remove('pulse'), 300);
-      }
     }
 
     function removerPreco(btn, valor) {
@@ -169,6 +191,21 @@
     function limparSugestoes() {
       precosDiv.innerHTML = '';
       sugestoesFixas = false;
+    }
+
+    function abrirPopup() {
+      popup.style.display = 'flex';
+      valorManual.value = '';
+    }
+
+    function adicionarManual() {
+      const valor = parseFloat(valorManual.value.replace(',', '.'));
+      if (!isNaN(valor)) {
+        adicionarPreco(valor);
+        popup.style.display = 'none';
+      } else {
+        alert("Digite um valor válido.");
+      }
     }
 
     function desenharROI() {
@@ -224,7 +261,7 @@
             const btn = document.createElement('div');
             btn.className = 'preco-btn';
             btn.innerText = `R$ ${valor.toFixed(2)}`;
-            btn.onclick = () => adicionarPreco(valor, btn);
+            btn.onclick = () => adicionarPreco(valor);
             precosDiv.appendChild(btn);
           }
         });
