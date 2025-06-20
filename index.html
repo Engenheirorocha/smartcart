@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -39,7 +38,6 @@
     #precos {
       display: flex;
       flex-direction: column;
-      flex-wrap: nowrap;
       gap: 10px;
       max-height: 500px;
       overflow-y: auto;
@@ -72,6 +70,18 @@
       align-items: center;
       justify-content: center;
     }
+    .btn-controle {
+      margin-top: 15px;
+    }
+    .btn-controle button {
+      background: #FF5252;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+    }
     #total {
       font-size: 2em;
       margin-top: 20px;
@@ -86,7 +96,13 @@
       <video id="video" autoplay playsinline></video>
       <canvas id="overlay"></canvas>
     </div>
-    <div id="precos"></div>
+    <div>
+      <div id="precos"></div>
+      <div class="btn-controle">
+        <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
+        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
+      </div>
+    </div>
   </div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
 
@@ -98,7 +114,7 @@
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
-    const botoesFixos = [];
+    let ultimoValor = null;
 
     async function iniciarCamera() {
       try {
@@ -114,7 +130,9 @@
 
     function adicionarPreco(valor) {
       total += valor;
+      ultimoValor = valor;
       somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
     }
 
     function removerPreco(btn, valor) {
@@ -122,6 +140,19 @@
       if (total < 0) total = 0;
       somaSpan.innerText = total.toFixed(2);
       btn.remove();
+    }
+
+    function desfazerUltimo() {
+      if (ultimoValor !== null) {
+        total -= ultimoValor;
+        if (total < 0) total = 0;
+        somaSpan.innerText = total.toFixed(2);
+        ultimoValor = null;
+      }
+    }
+
+    function limparSugestoes() {
+      precosDiv.innerHTML = '';
     }
 
     function desenharROI() {
@@ -169,34 +200,17 @@
       });
 
       const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+      limparSugestoes();
 
       if (matches) {
-        matches.forEach(str => {
+        matches.slice(0, 3).forEach(str => {
           const valor = parseFloat(str.replace(',', '.'));
           if (!isNaN(valor)) {
-            if (botoesFixos.length >= 2) {
-              const antigo = botoesFixos.shift();
-              antigo.remove();
-            }
-
             const btn = document.createElement('div');
             btn.className = 'preco-btn';
             btn.innerText = `R$ ${valor.toFixed(2)}`;
             btn.onclick = () => adicionarPreco(valor);
-
-            const lixeira = document.createElement('div');
-            lixeira.className = 'lixeira';
-            lixeira.innerText = '×';
-            lixeira.onclick = (e) => {
-              e.stopPropagation();
-              removerPreco(btn, valor);
-              const index = botoesFixos.indexOf(btn);
-              if (index > -1) botoesFixos.splice(index, 1);
-            };
-
-            btn.appendChild(lixeira);
             precosDiv.appendChild(btn);
-            botoesFixos.push(btn);
           }
         });
       }
