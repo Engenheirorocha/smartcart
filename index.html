@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -115,6 +116,7 @@
     let canvas = document.createElement('canvas');
     let isProcessing = false;
     let ultimoValor = null;
+    let sugestoesFixas = false;
 
     async function iniciarCamera() {
       try {
@@ -133,6 +135,7 @@
       ultimoValor = valor;
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
+      sugestoesFixas = false;
     }
 
     function removerPreco(btn, valor) {
@@ -153,6 +156,7 @@
 
     function limparSugestoes() {
       precosDiv.innerHTML = '';
+      sugestoesFixas = false;
     }
 
     function desenharROI() {
@@ -170,7 +174,7 @@
     }
 
     async function capturarImagemEProcessar() {
-      if (isProcessing || video.videoWidth === 0) return;
+      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
       isProcessing = true;
       desenharROI();
 
@@ -200,9 +204,8 @@
       });
 
       const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
-      limparSugestoes();
-
       if (matches) {
+        limparSugestoes();
         matches.slice(0, 3).forEach(str => {
           const valor = parseFloat(str.replace(',', '.'));
           if (!isNaN(valor)) {
@@ -213,6 +216,7 @@
             precosDiv.appendChild(btn);
           }
         });
+        sugestoesFixas = true;
       }
 
       isProcessing = false;
