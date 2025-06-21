@@ -128,17 +128,12 @@
   </div>
 
   <script>
+    let soma = 0;
+
     async function iniciarCamera() {
       const video = document.getElementById("video");
       try {
-        const constraints = {
-          video: {
-            facingMode: { ideal: "environment" }
-          },
-          audio: false
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
         video.srcObject = stream;
       } catch (err) {
         console.warn("Fallback para câmera padrão.", err);
@@ -147,13 +142,117 @@
           video.srcObject = fallbackStream;
         } catch (erroFinal) {
           console.error("Erro ao acessar qualquer câmera:", erroFinal);
-          const mensagem = document.createElement('p');
-          mensagem.textContent = "Câmera não disponível. Verifique permissões ou tente em outro navegador.";
-          mensagem.style.color = "#FF5252";
-          document.querySelector(".camera-wrapper").appendChild(mensagem);
         }
       }
     }
+
+    function adicionarManual() {
+      const valor = parseFloat(document.getElementById("valorManual").value);
+      if (!isNaN(valor) && valor > 0) {
+        const botao = document.createElement("button");
+        botao.className = "preco-btn";
+        botao.textContent = `R$ ${valor.toFixed(2)}`;
+        botao.onclick = () => {
+          botao.remove();
+          soma -= valor;
+          atualizarTotal();
+        };
+        document.getElementById("precos").appendChild(botao);
+        soma += valor;
+        atualizarTotal();
+        document.getElementById("valorManual").value = "";
+      }
+    }
+
+    function atualizarTotal() {
+      document.getElementById("soma").textContent = soma.toFixed(2);
+    }
+
+    function zerarTotal() {
+      soma = 0;
+      document.getElementById("soma").textContent = "0.00";
+      document.getElementById("precos").innerHTML = "";
+    }
+
+    function limparSugestoes() {
+      document.getElementById("precos").innerHTML = "";
+    }
+
+    function desfazerUltimo() {
+      const precos = document.getElementById("precos");
+      const ultimo = precos.lastElementChild;
+      if (ultimo) {
+        const valor = parseFloat(ultimo.textContent.replace("R$", "").trim());
+        if (!isNaN(valor)) {
+          soma -= valor;
+          atualizarTotal();
+        }
+        ultimo.remove();
+      }
+    }
+
+    const canvas = document.getElementById("overlay");
+    const video = document.getElementById("video");
+    const ctx = canvas.getContext("2d");
+
+    video.addEventListener("play", () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      async function processarOCR() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 4;
+
+        const w = canvas.width * 0.8;
+        const h = canvas.height * 0.2;
+        const x = (canvas.width - w) / 2;
+        const y = (canvas.height - h) / 2;
+        ctx.strokeRect(x, y, w, h);
+
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = w;
+        tempCanvas.height = h;
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCtx.drawImage(video, x, y, w, h, 0, 0, w, h);
+
+        const dataURL = tempCanvas.toDataURL("image/png");
+
+        try {
+          const resultado = await Tesseract.recognize(dataURL, 'eng');
+          const texto = resultado.data.text;
+          const matches = texto.match(/\d+[\.,]\d{2}/g);
+          if (matches) {
+            matches.forEach(valorTexto => {
+              const valor = parseFloat(valorTexto.replace(',', '.'));
+              if (!isNaN(valor)) {
+                const existe = [...document.querySelectorAll('.preco-btn')].some(btn => btn.textContent.includes(valor.toFixed(2)));
+                if (!existe) {
+                  const botao = document.createElement("button");
+                  botao.className = "preco-btn";
+                  botao.textContent = `R$ ${valor.toFixed(2)}`;
+                  botao.onclick = () => {
+                    botao.remove();
+                    soma -= valor;
+                    atualizarTotal();
+                  };
+                  document.getElementById("precos").appendChild(botao);
+                  soma += valor;
+                  atualizarTotal();
+                }
+              }
+            });
+          }
+        } catch (erro) {
+          console.error("Erro no OCR:", erro);
+        }
+
+        setTimeout(processarOCR, 3500);
+      }
+
+      processarOCR();
+    });
+
     iniciarCamera();
   </script>
 </body>
