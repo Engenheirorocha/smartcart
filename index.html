@@ -5,9 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartCart</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon.png">
-  <meta name="theme-color" content="#121212">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
     body {
@@ -77,18 +74,6 @@
       margin-top: 20px;
       color: #81C784;
     }
-    #installPrompt {
-      margin-top: 20px;
-    }
-    #installBtn {
-      font-size: 1.2em;
-      padding: 10px 20px;
-      background: #1E88E5;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -110,9 +95,7 @@
   <div class="btn-total">
     <button onclick="zerarTotal()">🔄 Zerar Total</button>
   </div>
-  <div id="installPrompt">
-    <button id="installBtn" style="display:none;">📲 Instalar SmartCart</button>
-  </div>
+
   <script>
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
@@ -123,7 +106,6 @@
     let isProcessing = false;
     let ultimoValor = null;
     let sugestoesFixas = false;
-    let deferredPrompt;
 
     async function iniciarCamera() {
       try {
@@ -236,24 +218,6 @@
 
     setInterval(capturarImagemEProcessar, 2000);
     iniciarCamera();
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('installBtn').style.display = 'inline-block';
-    });
-
-    document.getElementById('installBtn').addEventListener('click', () => {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => {
-        deferredPrompt = null;
-        document.getElementById('installBtn').style.display = 'none';
-      });
-    });
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
   </script>
 </body>
 </html>
