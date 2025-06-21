@@ -3,7 +3,7 @@
   "short_name": "SmartCart",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#e8f5e9",
+  "background_color": "#121212",
   "theme_color": "#4CAF50",
   "icons": [
     {
