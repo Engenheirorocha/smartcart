@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -127,5 +126,35 @@
 
     <div id="precos"></div>
   </div>
+
+  <script>
+    async function iniciarCamera() {
+      const video = document.getElementById("video");
+      try {
+        const constraints = {
+          video: {
+            facingMode: { ideal: "environment" }
+          },
+          audio: false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+      } catch (err) {
+        console.warn("Fallback para câmera padrão.", err);
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = fallbackStream;
+        } catch (erroFinal) {
+          console.error("Erro ao acessar qualquer câmera:", erroFinal);
+          const mensagem = document.createElement('p');
+          mensagem.textContent = "Câmera não disponível. Verifique permissões ou tente em outro navegador.";
+          mensagem.style.color = "#FF5252";
+          document.querySelector(".camera-wrapper").appendChild(mensagem);
+        }
+      }
+    }
+    iniciarCamera();
+  </script>
 </body>
 </html>
