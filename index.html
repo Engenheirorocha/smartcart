@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4CAF50">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.png">
+  <title>SmartCart</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #e8f5e9, #ffffff);
+    }
+    h1 {
+      color: #2E7D32;
+      font-size: 2.5em;
+    }
+    #total {
+      font-size: 2.5em;
+      margin: 30px 0 20px 0;
+      color: #1B5E20;
+    }
+    button, input[type="number"] {
+      font-size: 1.6em;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 12px;
+    }
+    #camera {
+      width: 100%;
+      max-width: 360px;
+      border: 4px solid #4CAF50;
+      border-radius: 16px;
+    }
+    #installPrompt {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>SmartCart</h1>
+  <video id="camera" autoplay playsinline></video>
+  <br>
+  <button onclick="captureAndRecognize()">Capturar e Reconhecer</button>
+  <div id="recognizedText"></div>
+  <div id="total">Total: R$ <span id="sum">0.00</span></div>
+  <div id="installPrompt">
+    <button id="installBtn" style="display:none;">Instalar SmartCart</button>
+  </div>
+
+  <script>
+    let stream;
+    let deferredPrompt;
+    const video = document.getElementById('camera');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(s => {
+        stream = s;
+        video.srcObject = s;
+      });
+
+    async function captureAndRecognize() {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      const dataURL = canvas.toDataURL('image/png');
+
+      const result = await Tesseract.recognize(dataURL, 'eng');
+      const rawText = result.data.text;
+      document.getElementById('recognizedText').innerText = rawText;
+
+      const prices = rawText.match(/\d+[\.,]\d{2}/g);
+      let total = 0;
+      if (prices) {
+        prices.forEach(p => {
+          total += parseFloat(p.replace(',', '.'));
+        });
+      }
+      document.getElementById('sum').innerText = total.toFixed(2);
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installBtn').style.display = 'inline-block';
+    });
+
+    document.getElementById('installBtn').addEventListener('click', () => {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+        document.getElementById('installBtn').style.display = 'none';
+      });
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
