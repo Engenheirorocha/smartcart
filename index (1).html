@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartCart</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    #precos {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .preco-btn {
+      padding: 15px 30px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+    #manualInput {
+      margin-top: 20px;
+    }
+    #manualInput input {
+      padding: 12px;
+      font-size: 1.2em;
+      border-radius: 8px;
+      border: none;
+      width: 160px;
+      margin-right: 10px;
+    }
+    #manualInput button {
+      padding: 12px 24px;
+      font-size: 1.2em;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #total {
+      font-size: 2em;
+      margin-top: 30px;
+      color: #81C784;
+    }
+  </style>
+</head>
+<body>
+  <h1>SmartCart</h1>
+  <video id="video" autoplay playsinline></video>
+
+  <div id="manualInput">
+    <input type="number" id="manualValue" step="0.01" placeholder="Digite o valor">
+    <button onclick="adicionarManual()">➕ Adicionar Manualmente</button>
+  </div>
+
+  <div id="total">Total: R$ <span id="soma">0.00</span></div>
+  <div id="precos"></div>
+
+  <script>
+    let total = 0;
+    const somaSpan = document.getElementById("soma");
+    const precosDiv = document.getElementById("precos");
+
+    async function iniciarCamera() {
+      const video = document.getElementById("video");
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+      } catch (err) {
+        console.warn("Erro ao acessar câmera:", err);
+      }
+    }
+
+    function adicionarManual() {
+      const input = document.getElementById("manualValue");
+      const valor = parseFloat(input.value.replace(',', '.'));
+      if (!isNaN(valor) && valor > 0) {
+        const btn = document.createElement('div');
+        btn.className = 'preco-btn';
+        btn.innerText = `R$ ${valor.toFixed(2)}`;
+        btn.onclick = () => removerPreco(btn, valor);
+        precosDiv.appendChild(btn);
+        total += valor;
+        somaSpan.innerText = total.toFixed(2);
+        input.value = '';
+      }
+    }
+
+    function removerPreco(btn, valor) {
+      btn.remove();
+      total -= valor;
+      somaSpan.innerText = total.toFixed(2);
+    }
+
+    iniciarCamera();
+  </script>
+</body>
+</html>
