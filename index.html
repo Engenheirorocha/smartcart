@@ -443,9 +443,9 @@ setInterval(desenharRetangulo, 1000);
 <!-- Modal para Adicionar Manual -->
 <div id="manualModal" style="display:none; position:fixed; top:5%; left:5%; width:90%; height:90%; background:#fff; overflow:auto; border:1px solid #ccc; padding:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-radius:10px;">
   <h3>Adicionar Produto Manualmente</h3>
-  <input type="text" id="manualNome" placeholder="Nome do produto" style="width: 100%; margin-bottom:10px;" />
-  <input type="number" id="manualValor" placeholder="Valor (ex: 4.99)" style="width: 100%; margin-bottom:10px;" />
-  <button onclick="confirmarManual()" style="margin-right: 10px;">Adicionar</button>
+  <label for="manualNome" style="font-size: 18px;">Produto:</label><br><input type="text" id="manualNome" placeholder="Ex: Leite Italac" style="width: 100%; font-size: 20px; padding: 10px; margin-bottom:20px;" />
+  <label for="manualValor" style="font-size: 18px;">Valor (R$):</label><br><input type="number" id="manualValor" placeholder="Ex: 5.99" style="width: 100%; font-size: 20px; padding: 10px; margin-bottom:20px;" />
+  <button onclick="confirmarManual()" style="margin-right: 10px; font-size: 18px; padding: 10px 20px;">Adicionar</button>
   <button onclick="fecharModal()">Cancelar</button>
 </div>
 
@@ -464,6 +464,7 @@ function confirmarManual() {
   const valor = parseFloat(document.getElementById('manualValor').value);
   if (nome && !isNaN(valor)) {
     adicionarProduto(nome, valor);
+  fecharModal();
     fecharModal();
     document.getElementById('manualNome').value = '';
     document.getElementById('manualValor').value = '';
