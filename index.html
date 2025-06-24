@@ -2,9 +2,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#007BFF">
-  <link rel="icon" href="smartcart_icon.png">
   <meta charset="UTF-8" />
   <title>SmartCart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -97,20 +94,17 @@
     }
 
     button {
-  padding: 18px 24px;
-  font-size: 20px;
-  border-radius: 12px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  cursor: pointer;
-  margin: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.3s ease;
-}
-button:hover {
-  background-color: #218838;
-}
+      background: #00ffcc;
+      border: none;
+      color: #000;
+      padding: 16px 24px;
+      font-weight: bold;
+      font-size: 1.4rem;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
 
     button:hover {
       background: #00e6b2;
@@ -182,17 +176,13 @@ button:hover {
   <div class="camera-box">
     <video id="video" autoplay muted playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
-  
-<div style="text-align: center; margin-top: 10px;">
-  </div>
-
   </div>
   <div class="output-box">
     <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
     <div id="lista"></div>
     <div class="controle-extra">
-      
-      
+      <button onclick="adicionarManual()">Adicionar Manual</button>
+      <button onclick="desfazerUltimo()">Desfazer Último</button>
       <button onclick="zerarTudo()">Zerar Tudo</button>
     </div>
   </div>
@@ -397,9 +387,21 @@ function detectarMelhoresNomes(textoOCR) {
 </script>
 
 <script>
+function adicionarManual() {
+  const nome = prompt("Digite o nome do produto:");
+  const valor = prompt("Digite o valor (ex: 4.99):");
+  if (nome && valor && !isNaN(parseFloat(valor))) {
+    adicionarProduto(nome, parseFloat(valor));
+  }
 }
 
- else {
+function desfazerUltimo() {
+  if (historico.length > 0) {
+    const ultimo = historico.pop();
+    total -= ultimo.valor;
+    produtos = produtos.filter(p => !(p.nome === ultimo.nome && p.valor === ultimo.valor));
+    atualizarLista();
+  } else {
     alert("Nada para desfazer.");
   }
 }
@@ -421,35 +423,56 @@ document.body.appendChild(retangulo);
 
 function desenharRetangulo() {
   const video = document.getElementById('video');
-  const retangulo = document.getElementById('retangulo');
-  if (!video || !retangulo || !video.offsetWidth || !video.offsetHeight) return;
+  if (!video.videoWidth || !video.videoHeight) return;
 
-  const bounding = video.getBoundingClientRect();
+  const largura = video.offsetWidth;
+  const altura = video.offsetHeight;
+  const top = video.offsetTop + altura * 0.4;
+  const left = video.offsetLeft;
 
-  const larguraRet = bounding.width;
-  const alturaRet = bounding.height * 0.2;
+  retangulo.style.width = largura + 'px';
+  retangulo.style.height = (altura * 0.2) + 'px';
+  retangulo.style.top = top + 'px';
+  retangulo.style.left = left + 'px';
+}
 
-  const top = bounding.top + (bounding.height - alturaRet) / 2 + window.scrollY;
-  const left = bounding.left + window.scrollX;
+setInterval(desenharRetangulo, 1000);
+</script>
 
-  retangulo.style.width = `${larguraRet}px`;
-  retangulo.style.height = `${alturaRet}px`;
-  retangulo.style.top = `${top}px`;
-  retangulo.style.left = `${left}px`;
-  retangulo.style.border = '2px solid red';
+
+<!-- Modal para Adicionar Manual -->
+<div id="manualModal" style="display:none; position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-radius:10px;">
+  <h3>Adicionar Produto Manualmente</h3>
+  <input type="text" id="manualNome" placeholder="Nome do produto" style="width: 100%; margin-bottom:10px;" />
+  <input type="number" id="manualValor" placeholder="Valor (ex: 4.99)" style="width: 100%; margin-bottom:10px;" />
+  <button onclick="confirmarManual()" style="margin-right: 10px;">Adicionar</button>
+  <button onclick="fecharModal()">Cancelar</button>
+</div>
+
+
+<script>
+function adicionarManual() {
+  document.getElementById('manualModal').style.display = 'block';
+}
+
+function fecharModal() {
+  document.getElementById('manualModal').style.display = 'none';
+}
+
+function confirmarManual() {
+  const nome = document.getElementById('manualNome').value;
+  const valor = parseFloat(document.getElementById('manualValor').value);
+  if (nome && !isNaN(valor)) {
+    adicionarProduto(nome, valor);
+    fecharModal();
+    document.getElementById('manualNome').value = '';
+    document.getElementById('manualValor').value = '';
+  } else {
+    alert('Preencha corretamente os campos.');
+  }
 }
 </script>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').then(() => {
-      console.log('Service Worker registrado com sucesso');
-    }).catch(error => {
-      console.log('Erro ao registrar o Service Worker:', error);
-    });
-  }
-</script>
-<div id="retangulo" style="position: absolute; border: 2px solid red; pointer-events: none; z-index: 10;"></div>
 </body>
 
 </html>
