@@ -8,15 +8,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
       background-color: #0d1b2a;
-      color: #ffffff;
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -24,11 +20,6 @@
     }
 
     header {
-      width: 100%;
-      max-width: 1000px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
       margin-top: 16px;
       margin-bottom: 10px;
     }
@@ -55,100 +46,73 @@
       font-size: 1.8rem;
     }
 
-    .mainContent {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      width: 100%;
-      max-width: 1000px;
-      padding: 10px 16px;
-      gap: 20px;
-    }
-
     #cameraContainer {
       position: relative;
-      flex: 1 1 45%;
-      min-width: 300px;
+      width: 100%;
       max-width: 420px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 0 12px #0077b6;
+      margin-top: 10px;
     }
 
     video, canvas {
       width: 100%;
-      display: block;
+      border-radius: 10px;
     }
 
     #focusBox {
       position: absolute;
-      top: 35%;
+      top: 40%;
       left: 0;
       width: 100%;
-      height: 30%;
-      border: 2px dashed #00b4d8;
-      animation: pulse 1.5s infinite;
+      height: 20%;
+      border: 3px dashed #00ffcc;
       pointer-events: none;
     }
 
-    @keyframes pulse {
-      0%, 100% { border-color: #00b4d8; }
-      50% { border-color: #90e0ef; }
-    }
-
-    .container {
-      flex: 1 1 45%;
+    .resultado, .lista {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #00ffcc;
+      border-radius: 8px;
+      width: 90%;
       max-width: 420px;
-    }
-
-    .box {
       background-color: #1b263b;
-      border: 1px solid #00b4d8;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 0 10px #00b4d855;
     }
 
     .opcao {
       background: #102030;
-      border: 1px solid #00b4d8;
+      border: 1px solid #00ffcc;
       border-radius: 10px;
-      padding: 20px;
-      margin: 16px 0;
+      margin: 12px 0;
+      padding: 16px;
       text-align: center;
     }
 
     .opcao strong {
       display: block;
-      margin-bottom: 12px;
-      font-size: 1.3rem;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
     }
 
     button {
-      background-color: #00b4d8;
-      color: #000;
+      background: #00ffcc;
       border: none;
-      padding: 22px 30px;
-      font-weight: 600;
-      font-size: 1.6rem;
-      border-radius: 10px;
+      color: #000;
+      padding: 16px 24px;
+      font-weight: bold;
+      font-size: 1.4rem;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background 0.3s ease, transform 0.2s ease;
       width: 100%;
-      max-width: 350px;
-      margin: 14px auto 0;
-      display: block;
+      margin-top: 10px;
     }
 
     button:hover {
-      background-color: #90e0ef;
-      transform: scale(1.02);
+      background: #00e6b2;
     }
 
     ul {
-      padding-left: 20px;
+      list-style: none;
+      padding: 0;
       font-size: 1.1rem;
     }
 
@@ -156,19 +120,11 @@
       margin-bottom: 10px;
     }
 
-    .actions {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .actions button {
-      flex: 1 1 45%;
-      font-size: 1.3rem;
-      padding: 18px 12px;
-      max-width: none;
+    #total {
+      font-weight: bold;
+      color: #00ffaa;
+      font-size: 1.2rem;
+      margin-top: 15px;
     }
   </style>
 </head>
@@ -179,39 +135,87 @@
 
   <h2>SmartCart</h2>
 
-  <div class="mainContent">
-    <div id="cameraContainer">
-      <video id="video" autoplay playsinline></video>
-      <canvas id="canvas" style="display:none;"></canvas>
-      <div id="focusBox"></div>
-    </div>
+  <div id="cameraContainer">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div id="focusBox"></div>
+  </div>
 
-    <div class="container">
-      <div class="actions">
-        <button onclick="zerarTotal()">🗑️ Zerar Total</button>
-        <button onclick="desfazerUltimo()">↩️ Desfazer Último</button>
-      </div>
+  <div id="resultado" class="resultado" style="display:none;"></div>
 
-      <div id="resultado" class="box" style="display:none;"></div>
-
-      <div id="listaProdutos" class="box" style="display:none;">
-        <h3>🛒 Produtos Adicionados</h3>
-        <ul id="produtos"></ul>
-      </div>
-    </div>
+  <div id="listaProdutos" class="lista" style="display:none;">
+    <h3>🛒 Produtos Adicionados</h3>
+    <ul id="produtos"></ul>
+    <p id="total">🧾 Total: R$ 0,00</p>
   </div>
 
   <script>
     let ocrAtivo = true;
     let produtosConfirmados = [];
-    let historicoTotais = [];
     let total = 0;
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultadoDiv = document.getElementById('resultado');
+    const listaDiv = document.getElementById('listaProdutos');
+    const listaUL = document.getElementById('produtos');
+    const totalSpan = document.getElementById('total');
+    const totalSuperior = document.getElementById('totalSuperior');
+    const context = canvas.getContext('2d');
+
+    async function iniciarCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+    }
+
+    async function processarOCR() {
+      if (!ocrAtivo || !video.videoWidth || !video.videoHeight) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const focoY = canvas.height * 0.4;
+      const focoAlt = canvas.height * 0.2;
+      const focoX = 0;
+      const focoLarg = canvas.width;
+
+      const imageData = context.getImageData(focoX, focoY, focoLarg, focoAlt);
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = focoLarg;
+      tempCanvas.height = focoAlt;
+      tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+
+      tempCanvas.toBlob(async (blob) => {
+        const { data: { text } } = await Tesseract.recognize(blob, 'por');
+        const resultado = detectarMelhoresNomes(text);
+
+        if (!resultado.preco) {
+          ocrAtivo = true;
+          return;
+        }
+
+        ocrAtivo = false;
+        let html = `<strong>💰 Preço:</strong> R$ ${resultado.preco.toFixed(2).replace('.', ',')}<br><br>`;
+        resultado.opcoes.forEach(op => {
+          html += `
+            <div class="opcao">
+              <strong>${op.texto}</strong>
+              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
+            </div>
+          `;
+        });
+
+        html += `<button onclick="excluirProduto()">Excluir</button>`;
+        resultadoDiv.innerHTML = html;
+        resultadoDiv.style.display = 'block';
+      });
+    }
 
     function detectarMelhoresNomes(textoOCR) {
       const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric'];
       const marcas = ['Italac', 'Tio João', 'Ninho', 'Qualitá', 'Sadia', 'Nestlé'];
       const unidades = ['kg', 'g', 'ml', 'l', 'L', 'un', 'und'];
-      const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric'];
       const opcoes = [];
       const precosDetectados = [];
 
@@ -247,61 +251,7 @@
       };
     }
 
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const resultadoDiv = document.getElementById('resultado');
-    const listaDiv = document.getElementById('listaProdutos');
-    const listaUL = document.getElementById('produtos');
-    const totalSuperior = document.getElementById('totalSuperior');
-    const context = canvas.getContext('2d');
-
-    async function iniciarCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      video.srcObject = stream;
-    }
-
-    async function processarOCR() {
-      if (!ocrAtivo || !video.videoWidth || !video.videoHeight) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const focoX = 0;
-      const focoY = canvas.height * 0.35;
-      const focoLarg = canvas.width;
-      const focoAlt = canvas.height * 0.3;
-
-      const imageData = context.getImageData(focoX, focoY, focoLarg, focoAlt);
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = focoLarg;
-      tempCanvas.height = focoAlt;
-      tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
-
-      const dataURL = tempCanvas.toDataURL('image/png');
-      const { data: { text } } = await Tesseract.recognize(dataURL, 'por');
-      const resultado = detectarMelhoresNomes(text);
-
-      if (!resultado.preco) return;
-
-      ocrAtivo = false;
-      let html = `<strong>💰 Preço:</strong> R$ ${resultado.preco.toFixed(2).replace('.', ',')}<br><br>`;
-      resultado.opcoes.forEach(op => {
-        html += `
-          <div class="opcao">
-            <strong>${op.texto}</strong>
-            <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
-          </div>
-        `;
-      });
-
-      html += `<button onclick="excluirProduto()">Excluir</button>`;
-      resultadoDiv.innerHTML = html;
-      resultadoDiv.style.display = 'block';
-    }
-
     function confirmarProduto(nome, preco) {
-      if (historicoTotais.length >= 10) historicoTotais.shift();
-      historicoTotais.push({ nome, preco });
       produtosConfirmados.push({ nome, preco });
       total += preco;
       atualizarLista();
@@ -321,28 +271,9 @@
         item.textContent = `${p.nome} – R$ ${p.preco.toFixed(2).replace('.', ',')}`;
         listaUL.appendChild(item);
       });
+      totalSpan.textContent = `🧾 Total: R$ ${total.toFixed(2).replace('.', ',')}`;
       totalSuperior.textContent = `🧾 R$ ${total.toFixed(2).replace('.', ',')}`;
       listaDiv.style.display = 'block';
-    }
-
-    function zerarTotal() {
-      produtosConfirmados = [];
-      total = 0;
-      historicoTotais = [];
-      atualizarLista();
-      listaDiv.style.display = 'none';
-    }
-
-    function desfazerUltimo() {
-      const ultimo = historicoTotais.pop();
-      if (ultimo) {
-        const index = produtosConfirmados.findIndex(p => p.nome === ultimo.nome && p.preco === ultimo.preco);
-        if (index !== -1) {
-          produtosConfirmados.splice(index, 1);
-          total -= ultimo.preco;
-          atualizarLista();
-        }
-      }
     }
 
     async function loopOCR() {
