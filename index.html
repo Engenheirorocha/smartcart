@@ -127,8 +127,61 @@
       margin-top: 15px;
     }
   </style>
+
+<style>
+  .container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  .camera-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .output-box {
+    flex: 1;
+    padding: 10px;
+  }
+  #resultado {
+    margin-top: 10px;
+  }
+  .controle-extra {
+    margin-top: 10px;
+  }
+  #video {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+  .retangulo {
+    border: 2px dashed red;
+    position: absolute;
+    pointer-events: none;
+  }
+</style>
+
 </head>
+
 <body>
+<div class="container">
+  <div class="camera-box">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+  </div>
+  <div class="output-box">
+    <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
+    <div id="lista"></div>
+    <div class="controle-extra">
+      <button onclick="adicionarManual()">Adicionar Manual</button>
+      <button onclick="desfazerUltimo()">Desfazer Último</button>
+      <button onclick="zerarTudo()">Zerar Tudo</button>
+    </div>
+  </div>
+</div>
+
   <header>
     <div id="totalSuperior">🧾 R$ 0,00</div>
   </header>
@@ -326,5 +379,36 @@ function detectarMelhoresNomes(textoOCR) {
   };
 }
 </script>
+
+<script>
+function adicionarManual() {
+  const nome = prompt("Digite o nome do produto:");
+  const valor = prompt("Digite o valor (ex: 4.99):");
+  if (nome && valor && !isNaN(parseFloat(valor))) {
+    adicionarProduto(nome, parseFloat(valor));
+  }
+}
+
+function desfazerUltimo() {
+  if (historico.length > 0) {
+    const ultimo = historico.pop();
+    total -= ultimo.valor;
+    produtos = produtos.filter(p => !(p.nome === ultimo.nome && p.valor === ultimo.valor));
+    atualizarLista();
+  } else {
+    alert("Nada para desfazer.");
+  }
+}
+
+function zerarTudo() {
+  if (confirm("Tem certeza que deseja zerar a lista?")) {
+    produtos = [];
+    historico = [];
+    total = 0;
+    atualizarLista();
+  }
+}
+</script>
 </body>
+
 </html>
