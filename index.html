@@ -168,8 +168,8 @@
 <body>
 
 <div style="text-align:center; margin-top: 10px;">
-  <h1 style="margin: 0; font-size: 3.6rem;">🛒 SmartCart</h1>
-  <div id="total" style="font-size: 42px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
+  <h1 style="margin: 0;">🛒 SmartCart</h1>
+  <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
 </div>
 
 <div class="container">
@@ -181,14 +181,15 @@
     <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
     <div id="lista"></div>
     <div class="controle-extra">
-      
-      
-      
-    </div>
+      </div>
   </div>
 </div>
 
-  
+  <header>
+    <div id="totalSuperior">🧾 R$ 0,00</div>
+  </header>
+
+  <h2>SmartCart</h2>
 
   <div id="cameraContainer">
     <video id="video" autoplay playsinline></video>
@@ -255,12 +256,12 @@
           html += `
             <div class="opcao">
               <strong>${op.texto}</strong>
-              
+              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
             </div>
           `;
         });
 
-        html += ``;
+        html += `<button onclick="excluirProduto()">Excluir</button>`;
         resultadoDiv.innerHTML = html;
         resultadoDiv.style.display = 'block';
       });
@@ -391,37 +392,24 @@ function adicionarManual() {
   }
 }
 
-
 function desfazerUltimo() {
-  if (produtosConfirmados.length > 0) {
-    const removido = produtosConfirmados.pop();
-    total -= removido.preco;
+  if (historico.length > 0) {
+    const ultimo = historico.pop();
+    total -= ultimo.valor;
+    produtos = produtos.filter(p => !(p.nome === ultimo.nome && p.valor === ultimo.valor));
     atualizarLista();
   } else {
     alert("Nada para desfazer.");
   }
 }
 
-}
-
-
-
-
-
 function zerarTudo() {
   if (confirm("Tem certeza que deseja zerar a lista?")) {
-    produtosConfirmados = [];
+    produtos = [];
+    historico = [];
     total = 0;
     atualizarLista();
   }
-}
-
-
-  }
-}
-
-}
-
 }
 </script>
 
@@ -432,67 +420,25 @@ document.body.appendChild(retangulo);
 
 function desenharRetangulo() {
   const video = document.getElementById('video');
-  const retangulo = document.getElementById('retangulo');
-  if (!video || !retangulo || !video.offsetWidth || !video.offsetHeight) return;
+  if (!video.videoWidth || !video.videoHeight) return;
 
-  const bounding = video.getBoundingClientRect();
+  const largura = video.offsetWidth;
+  const altura = video.offsetHeight;
+  const top = video.offsetTop + altura * 0.4;
+  const left = video.offsetLeft;
 
-  const larguraRet = bounding.width * 0.7; // Reduzido 30%
-  const alturaRet = bounding.height * 0.2;
-
-  const top = bounding.top + (bounding.height - alturaRet) / 2 + window.scrollY;
-  const left = bounding.left + (bounding.width - larguraRet) / 2 + window.scrollX;
-
-  retangulo.style.position = 'absolute';
-  retangulo.style.width = `${larguraRet}px`;
-  retangulo.style.height = `${alturaRet}px`;
-  retangulo.style.top = `${top}px`;
-  retangulo.style.left = `${left}px`;
-  retangulo.style.border = '2px solid red';
-  retangulo.style.zIndex = '10';
-  retangulo.style.pointerEvents = 'none';
+  retangulo.style.width = largura + 'px';
+  retangulo.style.height = (altura * 0.2) + 'px';
+  retangulo.style.top = top + 'px';
+  retangulo.style.left = left + 'px';
 }
 
 setInterval(desenharRetangulo, 1000);
 </script>
 
 
-<!-- Modal para Adicionar Manual -->
-<div id="manualModal" style="display:none; position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-radius:10px;">
-  <h3>Adicionar Produto Manualmente</h3>
-  <input type="text" id="manualNome" placeholder="Nome do produto" style="width: 100%; margin-bottom:10px;" />
-  <input type="number" id="manualValor" placeholder="Valor (ex: 4.99)" style="width: 100%; margin-bottom:10px;" />
-  
-  
-</div>
 
 
-<script>
-function adicionarManual() {
-  document.getElementById('manualModal').style.display = 'block';
-}
-
-function fecharModal() {
-  document.getElementById('manualModal').style.display = 'none';
-}
-
-function confirmarManual() {
-  const nome = document.getElementById('manualNome').value;
-  const valor = parseFloat(document.getElementById('manualValor').value);
-  if (nome && !isNaN(valor)) {
-    adicionarProduto(nome, valor);
-    fecharModal();
-    document.getElementById('manualNome').value = '';
-    document.getElementById('manualValor').value = '';
-  } else {
-    alert('Preencha corretamente os campos.');
-  }
-}
-</script>
-
-<div id="retangulo"></div>
 </body>
 
 </html>
-
-}
