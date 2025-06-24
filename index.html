@@ -4,31 +4,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartCart</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon.png">
-  <meta name="theme-color" content="#121212">
+  <title>SmartCart OCR</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
     body {
+      background-color: #121212;
+      color: white;
       font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
-      background: #121212;
-      color: #FFFFFF;
     }
-    .container {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    video {
+    #video {
       width: 100%;
       max-width: 400px;
       border-radius: 10px;
-      margin-bottom: 10px;
     }
     #overlay {
       position: absolute;
@@ -39,221 +28,97 @@
       height: auto;
       pointer-events: none;
     }
-    #precos {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 500px;
-      overflow-y: auto;
-    }
-    .preco-btn {
-      font-size: 1.464em;
-      padding: 12.2px 24.4px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+    .camera-wrapper {
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-block;
     }
-    .btn-controle, .btn-total {
-      margin-top: 15px;
-    }
-    .btn-controle button, .btn-total button {
-      background: #FF5252;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 1em;
-      cursor: pointer;
-      margin: 5px;
-    }
-    #total {
-      font-size: 2em;
+    #output {
       margin-top: 20px;
-      color: #81C784;
+      font-size: 1.5em;
     }
-    #installPrompt {
-      margin-top: 20px;
+    #manualInput {
+      margin-top: 30px;
     }
-    #installBtn {
+    #manualInput input {
+      padding: 10px;
       font-size: 1.2em;
+      border-radius: 10px;
+      border: none;
+      width: 150px;
+      margin-right: 10px;
+    }
+    #manualInput button {
       padding: 10px 20px;
-      background: #1E88E5;
+      font-size: 1.2em;
+      background-color: #1DB954;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>SmartCart</h1>
-  <div class="container">
-    <div style="position: relative;">
-      <video id="video" autoplay playsinline></video>
-      <canvas id="overlay"></canvas>
-    </div>
-    <div>
-      <div id="precos"></div>
-      <div class="btn-controle">
-        <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
-        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
-      </div>
-    </div>
+  <h1>SmartCart OCR</h1>
+  <div class="camera-wrapper">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="overlay"></canvas>
   </div>
-  <div id="total">Total: R$ <span id="soma">0.00</span></div>
-  <div class="btn-total">
-    <button onclick="zerarTotal()">🔄 Zerar Total</button>
+  <div id="output">Reconhecimento: <span id="recognizedText">Aguardando...</span></div>
+
+  <div id="manualInput">
+    <input type="number" id="manualValue" placeholder="Digite o valor">
+    <button onclick="adicionarManual()">Adicionar Manualmente</button>
   </div>
-  <div id="installPrompt">
-    <button id="installBtn" style="display:none;">📲 Instalar SmartCart</button>
-  </div>
+
   <script>
-    const video = document.getElementById('video');
-    const overlay = document.getElementById('overlay');
-    const precosDiv = document.getElementById('precos');
-    const somaSpan = document.getElementById('soma');
-    let total = 0;
-    let canvas = document.createElement('canvas');
-    let isProcessing = false;
-    let ultimoValor = null;
-    let sugestoesFixas = false;
-    let deferredPrompt;
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const recognizedText = document.getElementById("recognizedText");
+
+    let ultimaLeitura = "";
 
     async function iniciarCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: 'environment' } },
+          video: { facingMode: { ideal: "environment" } },
           audio: false
         });
         video.srcObject = stream;
       } catch (err) {
-        alert("Erro ao acessar a câmera: " + err);
+        console.error("Erro ao acessar câmera:", err);
+        alert("Erro ao acessar câmera.");
       }
     }
 
-    function adicionarPreco(valor) {
-      total += valor;
-      ultimoValor = valor;
-      somaSpan.innerText = total.toFixed(2);
-      limparSugestoes();
-      sugestoesFixas = false;
-    }
+    function capturarFrameEProcessar() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    function removerPreco(btn, valor) {
-      total -= valor;
-      if (total < 0) total = 0;
-      somaSpan.innerText = total.toFixed(2);
-      btn.remove();
-    }
-
-    function desfazerUltimo() {
-      if (ultimoValor !== null) {
-        total -= ultimoValor;
-        if (total < 0) total = 0;
-        somaSpan.innerText = total.toFixed(2);
-        ultimoValor = null;
-      }
-    }
-
-    function limparSugestoes() {
-      precosDiv.innerHTML = '';
-      sugestoesFixas = false;
-    }
-
-    function zerarTotal() {
-      total = 0;
-      somaSpan.innerText = total.toFixed(2);
-    }
-
-    function desenharROI() {
-      const ctx = overlay.getContext('2d');
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-      const w = overlay.width * 0.5;
-      const h = overlay.height * 0.2;
-      const x = (overlay.width - w) / 2;
-      const y = (overlay.height - h) / 2;
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x, y, w, h);
-    }
-
-    async function capturarImagemEProcessar() {
-      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
-      isProcessing = true;
-      desenharROI();
-
-      const ctx = canvas.getContext('2d');
-      const roiWidth = video.videoWidth * 0.5;
-      const roiHeight = video.videoHeight * 0.2;
-      const roiX = (video.videoWidth - roiWidth) / 2;
-      const roiY = (video.videoHeight - roiHeight) / 2;
-
-      canvas.width = roiWidth;
-      canvas.height = roiHeight;
-      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
-
-      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        let avg = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
-        let bin = avg > 128 ? 255 : 0;
-        imageData.data[i] = bin;
-        imageData.data[i + 1] = bin;
-        imageData.data[i + 2] = bin;
-      }
-      ctx.putImageData(imageData, 0, 0);
-
-      const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
-        tessedit_char_whitelist: '0123456789.,',
-        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK
+      Tesseract.recognize(canvas, 'eng', {
+        logger: m => console.log(m)
+      }).then(({ data: { text } }) => {
+        if (text && text.trim() !== "" && text.trim() !== ultimaLeitura) {
+          ultimaLeitura = text.trim();
+          recognizedText.textContent = ultimaLeitura;
+        }
       });
-
-      const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
-      if (matches) {
-        limparSugestoes();
-        matches.slice(0, 3).forEach(str => {
-          const valor = parseFloat(str.replace(',', '.'));
-          if (!isNaN(valor)) {
-            const btn = document.createElement('div');
-            btn.className = 'preco-btn';
-            btn.innerText = `R$ ${valor.toFixed(2)}`;
-            btn.onclick = () => adicionarPreco(valor);
-            precosDiv.appendChild(btn);
-          }
-        });
-        sugestoesFixas = true;
-      }
-
-      isProcessing = false;
     }
 
-    setInterval(capturarImagemEProcessar, 2000);
+    function adicionarManual() {
+      const input = document.getElementById("manualValue");
+      const valor = input.value.trim();
+      if (valor !== "") {
+        recognizedText.textContent = valor;
+        ultimaLeitura = valor;
+        input.value = "";
+      }
+    }
+
     iniciarCamera();
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      document.getElementById('installBtn').style.display = 'inline-block';
-    });
-
-    document.getElementById('installBtn').addEventListener('click', () => {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => {
-        deferredPrompt = null;
-        document.getElementById('installBtn').style.display = 'none';
-      });
-    });
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
+    setInterval(capturarFrameEProcessar, 3000);
   </script>
 </body>
 </html>
