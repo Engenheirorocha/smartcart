@@ -181,8 +181,8 @@
     <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
     <div id="lista"></div>
     <div class="controle-extra">
-      <button onclick="adicionarManual()">Adicionar Manual</button>
-      <button onclick="desfazerUltimo()">Desfazer Último</button>
+      
+      
       <button onclick="zerarTudo()">Zerar Tudo</button>
     </div>
   </div>
@@ -387,21 +387,9 @@ function detectarMelhoresNomes(textoOCR) {
 </script>
 
 <script>
-function adicionarManual() {
-  const nome = prompt("Digite o nome do produto:");
-  const valor = prompt("Digite o valor (ex: 4.99):");
-  if (nome && valor && !isNaN(parseFloat(valor))) {
-    adicionarProduto(nome, parseFloat(valor));
-  }
 }
 
-function desfazerUltimo() {
-  if (historico.length > 0) {
-    const ultimo = historico.pop();
-    total -= ultimo.valor;
-    produtos = produtos.filter(p => !(p.nome === ultimo.nome && p.valor === ultimo.valor));
-    atualizarLista();
-  } else {
+ else {
     alert("Nada para desfazer.");
   }
 }
@@ -440,35 +428,13 @@ setInterval(desenharRetangulo, 1000);
 </script>
 
 
-<!-- Modal para Adicionar Manual -->
-<div id="manualModal" style="display:none; position:fixed; top:5%; left:5%; width:90%; height:90%; background:#fff; overflow:auto; border:1px solid #ccc; padding:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-radius:10px;">
-  <h3>Adicionar Produto Manualmente</h3>
-  <label for="manualNome" style="font-size: 18px;">Produto:</label><br><input type="text" id="manualNome" placeholder="Ex: Leite Italac" style="width: 100%; font-size: 20px; padding: 10px; margin-bottom:20px;" />
-  <label for="manualValor" style="font-size: 18px;">Valor (R$):</label><br><input type="number" id="manualValor" placeholder="Ex: 5.99" style="width: 100%; font-size: 20px; padding: 10px; margin-bottom:20px;" />
-  <button onclick="confirmarManual()" style="margin-right: 10px; font-size: 18px; padding: 10px 20px;">Adicionar</button>
-  <button onclick="fecharModal()">Cancelar</button>
-</div>
+
 
 
 <script>
-function adicionarManual() {
-  document.getElementById('manualModal').style.display = 'block';
-}
 
-function fecharModal() {
-  document.getElementById('manualModal').style.display = 'none';
-}
 
-function confirmarManual() {
-  const nome = document.getElementById('manualNome').value;
-  const valor = parseFloat(document.getElementById('manualValor').value);
-  if (nome && !isNaN(valor)) {
-    adicionarProduto(nome, valor);
-  fecharModal();
-    fecharModal();
-    document.getElementById('manualNome').value = '';
-    document.getElementById('manualValor').value = '';
-  } else {
+ else {
     alert('Preencha corretamente os campos.');
   }
 }
