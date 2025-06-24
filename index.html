@@ -2,6 +2,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007BFF">
+  <link rel="icon" href="smartcart_icon.png">
   <meta charset="UTF-8" />
   <title>SmartCart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -425,74 +428,13 @@ document.body.appendChild(retangulo);
 
 function desenharRetangulo() {
   const video = document.getElementById('video');
-  if (!video.videoWidth || !video.videoHeight) return;
-
-  const largura = video.offsetWidth;
-  const altura = video.offsetHeight;
-  const top = video.offsetTop + altura * 0.4;
-  const left = video.offsetLeft;
-
-  retangulo.style.width = largura + 'px';
-  retangulo.style.height = (altura * 0.2) + 'px';
-  retangulo.style.top = top + 'px';
-  retangulo.style.left = left + 'px';
-}
-
-setInterval(desenharRetangulo, 1000);
-</script>
-
-
-
-
-
-<script>
-
-
- else {
-    alert('Preencha corretamente os campos.');
-  }
-}
-</script>
-
-
-<script>
-let modoFoco = false;
-let retangulo = null;
-
-window.addEventListener('load', () => {
-  retangulo = document.createElement('div');
-  retangulo.className = 'retangulo';
-  retangulo.style.position = 'absolute';
-  retangulo.style.zIndex = 999;
-  retangulo.style.border = '2px solid red';
-  document.body.appendChild(retangulo);
-
-  setInterval(desenharRetangulo, 500);
-});
-
-function alternarFoco() {
-  modoFoco = !modoFoco;
-  desenharRetangulo();
-}
-
-function desenharRetangulo() {
-  const video = document.getElementById('video');
   if (!video || !video.offsetWidth || !video.offsetHeight) return;
 
   const larguraVideo = video.offsetWidth;
   const alturaVideo = video.offsetHeight;
 
-  let larguraRet, alturaRet, cor;
-
-  if (modoFoco) {
-    larguraRet = larguraVideo * 0.3;
-    alturaRet = larguraRet; // quadrado
-    cor = 'limegreen'; // cor do modo foco
-  } else {
-    larguraRet = larguraVideo;
-    alturaRet = alturaVideo * 0.2;
-    cor = 'red'; // cor do modo normal
-  }
+  const larguraRet = larguraVideo * 0.7;
+  const alturaRet = alturaVideo * 0.14;
 
   const top = video.offsetTop + (alturaVideo - alturaRet) / 2;
   const left = video.offsetLeft + (larguraVideo - larguraRet) / 2;
@@ -501,10 +443,19 @@ function desenharRetangulo() {
   retangulo.style.height = `${alturaRet}px`;
   retangulo.style.top = `${top}px`;
   retangulo.style.left = `${left}px`;
-  retangulo.style.border = `2px solid ${cor}`;
+  retangulo.style.border = '2px solid red';
 }
 </script>
 
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').then(() => {
+      console.log('Service Worker registrado com sucesso');
+    }).catch(error => {
+      console.log('Erro ao registrar o Service Worker:', error);
+    });
+  }
+</script>
 </body>
 
 </html>
