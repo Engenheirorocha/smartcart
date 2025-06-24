@@ -433,11 +433,11 @@ function desenharRetangulo() {
   const larguraVideo = video.offsetWidth;
   const alturaVideo = video.offsetHeight;
 
-  const larguraRet = larguraVideo * 0.7;
-  const alturaRet = alturaVideo * 0.14;
+  const larguraRet = larguraVideo;
+  const alturaRet = alturaVideo * 0.2;
 
   const top = video.offsetTop + (alturaVideo - alturaRet) / 2;
-  const left = video.offsetLeft + (larguraVideo - larguraRet) / 2;
+  const left = video.offsetLeft;
 
   retangulo.style.width = `${larguraRet}px`;
   retangulo.style.height = `${alturaRet}px`;
