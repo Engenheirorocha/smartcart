@@ -113,11 +113,6 @@
         <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
       </div>
 
-      <div id="manualInput">
-        <input type="number" id="valorManual" step="0.01" placeholder="0.00">
-        <button onclick="adicionarManual()">➕ Adicionar</button>
-      </div>
-
       <div id="total">Total: R$ <span id="soma">0.00</span></div>
 
       <div class="btn-total">
@@ -126,41 +121,36 @@
     </div>
 
     <div id="precos"></div>
+
+    <!-- Adicionado abaixo dos valores reconhecidos -->
+    <div id="manualInput">
+      <input type="number" id="valorManual" step="0.01" placeholder="0.00">
+      <button onclick="adicionarManual()">➕ Adicionar</button>
+    </div>
   </div>
 
   <script>
     let soma = 0;
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("overlay");
-    const ctx = canvas.getContext("2d");
 
     async function iniciarCamera() {
+      const video = document.getElementById("video");
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
         video.srcObject = stream;
       } catch (err) {
-        console.error("Erro ao acessar câmera", err);
+        console.warn("Fallback para câmera padrão.", err);
+        try {
+          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = fallbackStream;
+        } catch (erroFinal) {
+          console.error("Erro ao acessar qualquer câmera:", erroFinal);
+          const mensagem = document.createElement('p');
+          mensagem.textContent = "Câmera não disponível. Verifique permissões ou tente em outro navegador.";
+          mensagem.style.color = "#FF5252";
+          document.querySelector(".camera-wrapper").appendChild(mensagem);
+        }
       }
     }
-
-    video.addEventListener("play", () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      function desenharRetangulo() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "red";
-        ctx.lineWidth = 4;
-        const w = canvas.width * 0.8;
-        const h = canvas.height * 0.2;
-        const x = (canvas.width - w) / 2;
-        const y = (canvas.height - h) / 2;
-        ctx.strokeRect(x, y, w, h);
-        requestAnimationFrame(desenharRetangulo);
-      }
-
-      desenharRetangulo();
-    });
 
     function adicionarManual() {
       const valor = parseFloat(document.getElementById("valorManual").value);
@@ -208,6 +198,29 @@
     }
 
     iniciarCamera();
+
+    const canvas = document.getElementById("overlay");
+    const video = document.getElementById("video");
+    const ctx = canvas.getContext("2d");
+
+    video.addEventListener("play", () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      function desenharRetangulo() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 4;
+        const w = canvas.width * 0.8;
+        const h = canvas.height * 0.2;
+        const x = (canvas.width - w) / 2;
+        const y = (canvas.height - h) / 2;
+        ctx.strokeRect(x, y, w, h);
+        requestAnimationFrame(desenharRetangulo);
+      }
+
+      desenharRetangulo();
+    });
   </script>
 </body>
 </html>
