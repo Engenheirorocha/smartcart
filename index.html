@@ -74,26 +74,6 @@
       margin-top: 20px;
       color: #81C784;
     }
-    #manualInput {
-      margin-top: 20px;
-    }
-    #manualInput input {
-      padding: 10px;
-      font-size: 1.2em;
-      border-radius: 8px;
-      border: none;
-      width: 120px;
-      margin-right: 10px;
-    }
-    #manualInput button {
-      font-size: 1.2em;
-      padding: 10px 20px;
-      background: #1E88E5;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -111,20 +91,16 @@
       </div>
     </div>
   </div>
-  <div id="manualInput">
-    <input type="number" id="valorManual" step="0.01" placeholder="0.00">
-    <button onclick="adicionarManual()">➕ Adicionar</button>
-  </div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
   <div class="btn-total">
     <button onclick="zerarTotal()">🔄 Zerar Total</button>
   </div>
+
   <script>
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
-    const inputManual = document.getElementById('valorManual');
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
@@ -149,16 +125,6 @@
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
       sugestoesFixas = false;
-    }
-
-    function adicionarManual() {
-      const valor = parseFloat(inputManual.value);
-      if (!isNaN(valor) && valor > 0) {
-        adicionarPreco(valor);
-        inputManual.value = '';
-      } else {
-        alert("Digite um valor válido.");
-      }
     }
 
     function removerPreco(btn, valor) {
