@@ -181,9 +181,9 @@
     <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
     <div id="lista"></div>
     <div class="controle-extra">
-      <button onclick="adicionarManual()">Adicionar Manual</button>
-      <button onclick="desfazerUltimo()">Desfazer Último</button>
-      <button onclick="zerarTudo()">Zerar Tudo</button>
+      
+      
+      
     </div>
   </div>
 </div>
@@ -255,12 +255,12 @@
           html += `
             <div class="opcao">
               <strong>${op.texto}</strong>
-              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
+              
             </div>
           `;
         });
 
-        html += `<button onclick="excluirProduto()">Excluir</button>`;
+        html += ``;
         resultadoDiv.innerHTML = html;
         resultadoDiv.style.display = 'block';
       });
@@ -462,8 +462,8 @@ setInterval(desenharRetangulo, 1000);
   <h3>Adicionar Produto Manualmente</h3>
   <input type="text" id="manualNome" placeholder="Nome do produto" style="width: 100%; margin-bottom:10px;" />
   <input type="number" id="manualValor" placeholder="Valor (ex: 4.99)" style="width: 100%; margin-bottom:10px;" />
-  <button onclick="confirmarManual()" style="margin-right: 10px;">Adicionar</button>
-  <button onclick="fecharModal()">Cancelar</button>
+  
+  
 </div>
 
 
