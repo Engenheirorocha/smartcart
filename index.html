@@ -176,6 +176,20 @@
   <div class="camera-box">
     <video id="video" autoplay muted playsinline></video>
     <canvas id="canvas" style="display:none;"></canvas>
+  
+<div style="text-align: center; margin-top: 10px;">
+  <button onclick="alternarFoco()" style="
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 14px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+  ">Foco</button>
+</div>
+
   </div>
   <div class="output-box">
     <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
@@ -438,6 +452,41 @@ setInterval(desenharRetangulo, 1000);
     alert('Preencha corretamente os campos.');
   }
 }
+</script>
+
+
+<script>
+let modoFoco = false;
+
+function alternarFoco() {
+  modoFoco = !modoFoco;
+  desenharRetangulo();
+}
+
+const retangulo = document.createElement('div');
+retangulo.className = 'retangulo';
+document.body.appendChild(retangulo);
+
+function desenharRetangulo() {
+  const video = document.getElementById('video');
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  const largura = video.offsetWidth;
+  const altura = video.offsetHeight;
+
+  const larguraRet = modoFoco ? largura * 0.3 : largura;
+  const alturaRet = modoFoco ? altura * 0.3 : altura * 0.2;
+
+  const top = video.offsetTop + (altura - alturaRet) / 2;
+  const left = video.offsetLeft + (largura - larguraRet) / 2;
+
+  retangulo.style.width = larguraRet + 'px';
+  retangulo.style.height = alturaRet + 'px';
+  retangulo.style.top = top + 'px';
+  retangulo.style.left = left + 'px';
+}
+
+setInterval(desenharRetangulo, 800);
 </script>
 
 </body>
