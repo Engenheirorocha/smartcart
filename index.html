@@ -166,6 +166,12 @@
 </head>
 
 <body>
+
+<div style="text-align:center; margin-top: 10px;">
+  <h1 style="margin: 0;">🛒 SmartCart</h1>
+  <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
+</div>
+
 <div class="container">
   <div class="camera-box">
     <video id="video" autoplay muted playsinline></video>
@@ -409,6 +415,64 @@ function zerarTudo() {
   }
 }
 </script>
+
+<script>
+const retangulo = document.createElement('div');
+retangulo.className = 'retangulo';
+document.body.appendChild(retangulo);
+
+function desenharRetangulo() {
+  const video = document.getElementById('video');
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  const largura = video.offsetWidth;
+  const altura = video.offsetHeight;
+  const top = video.offsetTop + altura * 0.4;
+  const left = video.offsetLeft;
+
+  retangulo.style.width = largura + 'px';
+  retangulo.style.height = (altura * 0.2) + 'px';
+  retangulo.style.top = top + 'px';
+  retangulo.style.left = left + 'px';
+}
+
+setInterval(desenharRetangulo, 1000);
+</script>
+
+
+<!-- Modal para Adicionar Manual -->
+<div id="manualModal" style="display:none; position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border-radius:10px;">
+  <h3>Adicionar Produto Manualmente</h3>
+  <input type="text" id="manualNome" placeholder="Nome do produto" style="width: 100%; margin-bottom:10px;" />
+  <input type="number" id="manualValor" placeholder="Valor (ex: 4.99)" style="width: 100%; margin-bottom:10px;" />
+  <button onclick="confirmarManual()" style="margin-right: 10px;">Adicionar</button>
+  <button onclick="fecharModal()">Cancelar</button>
+</div>
+
+
+<script>
+function adicionarManual() {
+  document.getElementById('manualModal').style.display = 'block';
+}
+
+function fecharModal() {
+  document.getElementById('manualModal').style.display = 'none';
+}
+
+function confirmarManual() {
+  const nome = document.getElementById('manualNome').value;
+  const valor = parseFloat(document.getElementById('manualValor').value);
+  if (nome && !isNaN(valor)) {
+    adicionarProduto(nome, valor);
+    fecharModal();
+    document.getElementById('manualNome').value = '';
+    document.getElementById('manualValor').value = '';
+  } else {
+    alert('Preencha corretamente os campos.');
+  }
+}
+</script>
+
 </body>
 
 </html>
