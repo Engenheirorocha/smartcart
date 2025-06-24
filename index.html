@@ -457,36 +457,42 @@ setInterval(desenharRetangulo, 1000);
 
 <script>
 let modoFoco = false;
+let retangulo = null;
+
+window.addEventListener('load', () => {
+  retangulo = document.createElement('div');
+  retangulo.className = 'retangulo';
+  retangulo.style.position = 'absolute';
+  retangulo.style.border = '2px solid red';
+  retangulo.style.zIndex = 999;
+  document.body.appendChild(retangulo);
+
+  setInterval(desenharRetangulo, 500);
+});
 
 function alternarFoco() {
   modoFoco = !modoFoco;
-  desenharRetangulo();
+  desenharRetangulo(); // chama imediatamente ao clicar
 }
-
-const retangulo = document.createElement('div');
-retangulo.className = 'retangulo';
-document.body.appendChild(retangulo);
 
 function desenharRetangulo() {
   const video = document.getElementById('video');
-  if (!video.videoWidth || !video.videoHeight) return;
+  if (!video || !video.offsetWidth || !video.offsetHeight) return;
 
   const largura = video.offsetWidth;
   const altura = video.offsetHeight;
 
   const larguraRet = modoFoco ? largura * 0.3 : largura;
-  const alturaRet = modoFoco ? altura * 0.3 : altura * 0.2;
+  const alturaRet = modoFoco ? largura * 0.3 : altura * 0.2;
 
   const top = video.offsetTop + (altura - alturaRet) / 2;
   const left = video.offsetLeft + (largura - larguraRet) / 2;
 
-  retangulo.style.width = larguraRet + 'px';
-  retangulo.style.height = alturaRet + 'px';
-  retangulo.style.top = top + 'px';
-  retangulo.style.left = left + 'px';
+  retangulo.style.width = `${larguraRet}px`;
+  retangulo.style.height = `${alturaRet}px`;
+  retangulo.style.top = `${top}px`;
+  retangulo.style.left = `${left}px`;
 }
-
-setInterval(desenharRetangulo, 800);
 </script>
 
 </body>
