@@ -433,14 +433,13 @@ function desenharRetangulo() {
   const video = document.getElementById('video');
   if (!video || !video.offsetWidth || !video.offsetHeight) return;
 
-  const larguraVideo = video.offsetWidth;
-  const alturaVideo = video.offsetHeight;
+  const bounding = video.getBoundingClientRect();
 
-  const larguraRet = larguraVideo;
-  const alturaRet = alturaVideo * 0.2;
+  const larguraRet = bounding.width;
+  const alturaRet = bounding.height * 0.2;
 
-  const top = video.offsetTop + (alturaVideo - alturaRet) / 2;
-  const left = video.offsetLeft;
+  const top = bounding.top + (bounding.height - alturaRet) / 2 + window.scrollY;
+  const left = bounding.left + window.scrollX;
 
   retangulo.style.width = `${larguraRet}px`;
   retangulo.style.height = `${alturaRet}px`;
