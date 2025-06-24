@@ -172,27 +172,11 @@
   <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
 </div>
 
-<div class="container">
-  <div class="camera-box">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-  </div>
-  <div class="output-box">
-    <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
-    <div id="lista"></div>
-    <div class="controle-extra">
-      <button onclick="adicionarManual()">Adicionar Manual</button>
-      <button onclick="desfazerUltimo()">Desfazer Último</button>
-      <button onclick="zerarTudo()">Zerar Tudo</button>
-    </div>
-  </div>
-</div>
-
-  <header>
-    <div id="totalSuperior">🧾 R$ 0,00</div>
+<header>
+    <div id="totalSuperior" style="font-size: 4.8rem;">🧾 R$ 0,00</div>
   </header>
 
-  <h2>SmartCart</h2>
+  <h2 style="font-size: 3.3rem;">🛒 SmartCart</h2>
 
   <div id="cameraContainer">
     <video id="video" autoplay playsinline></video>
@@ -212,7 +196,6 @@
     let ocrAtivo = true;
     let produtosConfirmados = [];
     let total = 0;
-let produtosConfirmados = [];
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -400,28 +383,21 @@ function adicionarManual() {
 function desfazerUltimo() {
   if (produtosConfirmados.length > 0) {
     const removido = produtosConfirmados.pop();
-    total -= removido.valor;
-
-    const produtosUL = document.getElementById('produtos');
-    produtosUL.removeChild(produtosUL.lastChild);
-
-    atualizarTotal();
+    total -= removido.preco;
+    atualizarLista();
   } else {
-    alert("Nenhum item para desfazer.");
-  }
-}
- else {
     alert("Nada para desfazer.");
   }
 }
 
+}
+
 
 function zerarTudo() {
-  if (confirm("Tem certeza que deseja zerar a lista e o total?")) {
+  if (confirm("Tem certeza que deseja zerar a lista?")) {
     produtosConfirmados = [];
     total = 0;
-    document.getElementById('produtos').innerHTML = '';
-    atualizarTotal();
+    atualizarLista();
   }
 }
 
