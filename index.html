@@ -421,7 +421,8 @@ document.body.appendChild(retangulo);
 
 function desenharRetangulo() {
   const video = document.getElementById('video');
-  if (!video || !video.offsetWidth || !video.offsetHeight) return;
+  const retangulo = document.getElementById('retangulo');
+  if (!video || !retangulo || !video.offsetWidth || !video.offsetHeight) return;
 
   const bounding = video.getBoundingClientRect();
 
@@ -448,6 +449,7 @@ function desenharRetangulo() {
     });
   }
 </script>
+<div id="retangulo" style="position: absolute; border: 2px solid red; pointer-events: none; z-index: 10;"></div>
 </body>
 
 </html>
