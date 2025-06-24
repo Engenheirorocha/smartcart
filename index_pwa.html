@@ -1,0 +1,522 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007BFF">
+  <link rel="icon" href="smartcart_icon.png">
+  <meta charset="UTF-8" />
+  <title>SmartCart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: #0d1b2a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 40px;
+    }
+
+    header {
+      margin-top: 16px;
+      margin-bottom: 10px;
+    }
+
+    #totalSuperior {
+      font-size: 3.2rem;
+      font-weight: bold;
+      color: #00ffea;
+      text-align: center;
+    }
+
+    h2 {
+      font-size: 2.2rem;
+      color: #00b4d8;
+      text-align: center;
+      margin: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2::before {
+      content: '🛒';
+      font-size: 1.8rem;
+    }
+
+    #cameraContainer {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      margin-top: 10px;
+    }
+
+    video, canvas {
+      width: 100%;
+      border-radius: 10px;
+    }
+
+    #focusBox {
+      position: absolute;
+      top: 40%;
+      left: 0;
+      width: 100%;
+      height: 20%;
+      border: 3px dashed #00ffcc;
+      pointer-events: none;
+    }
+
+    .resultado, .lista {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #00ffcc;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 420px;
+      background-color: #1b263b;
+    }
+
+    .opcao {
+      background: #102030;
+      border: 1px solid #00ffcc;
+      border-radius: 10px;
+      margin: 12px 0;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .opcao strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+    }
+
+    button {
+      background: #00ffcc;
+      border: none;
+      color: #000;
+      padding: 16px 24px;
+      font-weight: bold;
+      font-size: 1.4rem;
+      border-radius: 8px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #00e6b2;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      font-size: 1.1rem;
+    }
+
+    li {
+      margin-bottom: 10px;
+    }
+
+    #total {
+      font-weight: bold;
+      color: #00ffaa;
+      font-size: 1.2rem;
+      margin-top: 15px;
+    }
+  </style>
+
+<style>
+  .container {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  .camera-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .output-box {
+    flex: 1;
+    padding: 10px;
+  }
+  #resultado {
+    margin-top: 10px;
+  }
+  .controle-extra {
+    margin-top: 10px;
+  }
+  #video {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+  .retangulo {
+    border: 2px dashed red;
+    position: absolute;
+    pointer-events: none;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div style="text-align:center; margin-top: 10px;">
+  <h1 style="margin: 0;">🛒 SmartCart</h1>
+  <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
+</div>
+
+<div class="container">
+  <div class="camera-box">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+  
+<div style="text-align: center; margin-top: 10px;">
+  <button onclick="alternarFoco()" style="
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 14px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+  ">Foco</button>
+</div>
+
+  </div>
+  <div class="output-box">
+    <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
+    <div id="lista"></div>
+    <div class="controle-extra">
+      
+      
+      <button onclick="zerarTudo()">Zerar Tudo</button>
+    </div>
+  </div>
+</div>
+
+  <header>
+    <div id="totalSuperior">🧾 R$ 0,00</div>
+  </header>
+
+  <h2>SmartCart</h2>
+
+  <div id="cameraContainer">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div id="focusBox"></div>
+  </div>
+
+  <div id="resultado" class="resultado" style="display:none;"></div>
+
+  <div id="listaProdutos" class="lista" style="display:none;">
+    <h3>🛒 Produtos Adicionados</h3>
+    <ul id="produtos"></ul>
+    <p id="total">🧾 Total: R$ 0,00</p>
+  </div>
+
+  <script>
+    let ocrAtivo = true;
+    let produtosConfirmados = [];
+    let total = 0;
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultadoDiv = document.getElementById('resultado');
+    const listaDiv = document.getElementById('listaProdutos');
+    const listaUL = document.getElementById('produtos');
+    const totalSpan = document.getElementById('total');
+    const totalSuperior = document.getElementById('totalSuperior');
+    const context = canvas.getContext('2d');
+
+    async function iniciarCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+    }
+
+    async function processarOCR() {
+      if (!ocrAtivo || !video.videoWidth || !video.videoHeight) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const focoY = canvas.height * 0.4;
+      const focoAlt = canvas.height * 0.2;
+      const focoX = 0;
+      const focoLarg = canvas.width;
+
+      const imageData = context.getImageData(focoX, focoY, focoLarg, focoAlt);
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = focoLarg;
+      tempCanvas.height = focoAlt;
+      tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
+
+      tempCanvas.toBlob(async (blob) => {
+        const { data: { text } } = await Tesseract.recognize(blob, 'por');
+        const resultado = detectarMelhoresNomes(text);
+
+        if (!resultado.preco) {
+          ocrAtivo = true;
+          return;
+        }
+
+        ocrAtivo = false;
+        let html = `<strong>💰 Preço:</strong> R$ ${resultado.preco.toFixed(2).replace('.', ',')}<br><br>`;
+        resultado.opcoes.forEach(op => {
+          html += `
+            <div class="opcao">
+              <strong>${op.texto}</strong>
+              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
+            </div>
+          `;
+        });
+
+        html += `<button onclick="excluirProduto()">Excluir</button>`;
+        resultadoDiv.innerHTML = html;
+        resultadoDiv.style.display = 'block';
+      });
+    }
+
+    function detectarMelhoresNomes(textoOCR) {
+      const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric'];
+      const marcas = ['Italac', 'Tio João', 'Ninho', 'Qualitá', 'Sadia', 'Nestlé'];
+      const unidades = ['kg', 'g', 'ml', 'l', 'L', 'un', 'und'];
+      const opcoes = [];
+      const precosDetectados = [];
+
+      for (const linha of linhas) {
+        const linhaLimpa = linha.toLowerCase();
+        const temPreco = /(r\$\s*|por\s*|preço\s*)?\d{1,3}[.,]\d{2}/.test(linhaLimpa);
+
+        const precos = linha.match(/(r\$\s?)?(\d{1,3}[.,]\d{2})/gi);
+        if (precos && temPreco && !palavrasBanidas.some(p => linhaLimpa.includes(p))) {
+          precos.forEach(p => {
+            const num = p.replace(/[^0-9,\.]/g, '').replace(',', '.');
+            const val = parseFloat(num);
+            if (val > 0.5 && val < 500) precosDetectados.push(val);
+          });
+        }
+
+        let pontos = 0;
+        const palavras = linha.split(' ');
+        if (palavras.length >= 2) pontos += 2;
+        if (marcas.some(m => linha.includes(m))) pontos += 3;
+        if (unidades.some(u => linhaLimpa.includes(u))) pontos += 2;
+        if (!palavrasBanidas.some(p => linhaLimpa.includes(p))) pontos += 2;
+        if (linha === linha.toUpperCase()) pontos += 1;
+
+        opcoes.push({ texto: linha, pontos });
+      }
+
+      opcoes.sort((a, b) => b.pontos - a.pontos);
+      const precoFinal = precosDetectados.sort((a, b) => a - b)[0];
+      return {
+        opcoes: opcoes.slice(0, 3),
+        preco: precoFinal ? parseFloat(precoFinal.toFixed(2)) : null
+      };
+    }
+
+    function confirmarProduto(nome, preco) {
+      produtosConfirmados.push({ nome, preco });
+      total += preco;
+      atualizarLista();
+      resultadoDiv.style.display = 'none';
+      ocrAtivo = true;
+    }
+
+    function excluirProduto() {
+      resultadoDiv.style.display = 'none';
+      ocrAtivo = true;
+    }
+
+    function atualizarLista() {
+      listaUL.innerHTML = '';
+      produtosConfirmados.forEach(p => {
+        const item = document.createElement('li');
+        item.textContent = `${p.nome} – R$ ${p.preco.toFixed(2).replace('.', ',')}`;
+        listaUL.appendChild(item);
+      });
+      totalSpan.textContent = `🧾 Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+      totalSuperior.textContent = `🧾 R$ ${total.toFixed(2).replace('.', ',')}`;
+      listaDiv.style.display = 'block';
+    }
+
+    async function loopOCR() {
+      await processarOCR();
+      setTimeout(loopOCR, 2000);
+    }
+
+    iniciarCamera().then(loopOCR);
+  </script>
+<script>
+function detectarMelhoresNomes(textoOCR) {
+  const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric', 'leve'];
+  const marcas = ['Italac', 'Tio João', 'Ninho', 'Qualitá', 'Sadia', 'Nestlé'];
+  const unidades = ['kg', 'g', 'ml', 'l', 'L', 'un', 'und'];
+  const opcoes = [];
+  const precosDetectados = [];
+
+  for (const linha of linhas) {
+    const linhaLimpa = linha.toLowerCase();
+    const temPreco = /(r\$\s*|por\s*|preço\s*)?\d{1,3}[.,]\d{2}/.test(linhaLimpa);
+
+    const precos = linha.match(/(r\$\s?)?(\d{1,3}[.,]\d{2})/gi);
+    if (precos && temPreco && !palavrasBanidas.some(p => linhaLimpa.includes(p))) {
+      precos.forEach(p => {
+        const num = p.replace(/[^0-9,\.]/g, '').replace(',', '.');
+        const val = parseFloat(num);
+        if (val > 0.5 && val < 500) precosDetectados.push(val);
+      });
+    }
+
+    let pontos = 0;
+    const palavras = linha.split(' ');
+
+    if (palavras.length >= 2) pontos += 2;
+    if (marcas.some(m => linha.includes(m))) pontos += 3;
+    if (unidades.some(u => linhaLimpa.includes(u))) pontos += 2;
+    if (!palavrasBanidas.some(p => linhaLimpa.includes(p))) pontos += 2;
+    if (linha === linha.toUpperCase()) pontos += 2;
+    if (linha.length > 12) pontos += 1;
+
+    opcoes.push({ texto: linha, pontos });
+  }
+
+  opcoes.sort((a, b) => b.pontos - a.pontos);
+  const precoFinal = Math.max(...precosDetectados);
+  return {
+    opcoes: opcoes.length > 0 ? [opcoes[0]] : [],
+    preco: isFinite(precoFinal) ? parseFloat(precoFinal.toFixed(2)) : null
+  };
+}
+</script>
+
+<script>
+}
+
+ else {
+    alert("Nada para desfazer.");
+  }
+}
+
+function zerarTudo() {
+  if (confirm("Tem certeza que deseja zerar a lista?")) {
+    produtos = [];
+    historico = [];
+    total = 0;
+    atualizarLista();
+  }
+}
+</script>
+
+<script>
+const retangulo = document.createElement('div');
+retangulo.className = 'retangulo';
+document.body.appendChild(retangulo);
+
+function desenharRetangulo() {
+  const video = document.getElementById('video');
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  const largura = video.offsetWidth;
+  const altura = video.offsetHeight;
+  const top = video.offsetTop + altura * 0.4;
+  const left = video.offsetLeft;
+
+  retangulo.style.width = largura + 'px';
+  retangulo.style.height = (altura * 0.2) + 'px';
+  retangulo.style.top = top + 'px';
+  retangulo.style.left = left + 'px';
+}
+
+setInterval(desenharRetangulo, 1000);
+</script>
+
+
+
+
+
+<script>
+
+
+ else {
+    alert('Preencha corretamente os campos.');
+  }
+}
+</script>
+
+
+<script>
+let modoFoco = false;
+let retangulo = null;
+
+window.addEventListener('load', () => {
+  retangulo = document.createElement('div');
+  retangulo.className = 'retangulo';
+  retangulo.style.position = 'absolute';
+  retangulo.style.zIndex = 999;
+  retangulo.style.border = '2px solid red';
+  document.body.appendChild(retangulo);
+
+  setInterval(desenharRetangulo, 500);
+});
+
+function alternarFoco() {
+  modoFoco = !modoFoco;
+  desenharRetangulo();
+}
+
+function desenharRetangulo() {
+  const video = document.getElementById('video');
+  if (!video || !video.offsetWidth || !video.offsetHeight) return;
+
+  const larguraVideo = video.offsetWidth;
+  const alturaVideo = video.offsetHeight;
+
+  let larguraRet, alturaRet, cor;
+
+  if (modoFoco) {
+    larguraRet = larguraVideo * 0.3;
+    alturaRet = larguraRet; // quadrado
+    cor = 'limegreen'; // cor do modo foco
+  } else {
+    larguraRet = larguraVideo;
+    alturaRet = alturaVideo * 0.2;
+    cor = 'red'; // cor do modo normal
+  }
+
+  const top = video.offsetTop + (alturaVideo - alturaRet) / 2;
+  const left = video.offsetLeft + (larguraVideo - larguraRet) / 2;
+
+  retangulo.style.width = `${larguraRet}px`;
+  retangulo.style.height = `${alturaRet}px`;
+  retangulo.style.top = `${top}px`;
+  retangulo.style.left = `${left}px`;
+  retangulo.style.border = `2px solid ${cor}`;
+}
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').then(() => {
+      console.log('Service Worker registrado com sucesso');
+    }).catch(error => {
+      console.log('Erro ao registrar o Service Worker:', error);
+    });
+  }
+</script>
+</body>
+
+</html>

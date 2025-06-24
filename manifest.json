@@ -1,15 +1,15 @@
 {
   "name": "SmartCart",
   "short_name": "SmartCart",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#4CAF50",
+  "background_color": "#ffffff",
+  "theme_color": "#007BFF",
   "icons": [
     {
-      "src": "icon.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "src": "smartcart_icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
