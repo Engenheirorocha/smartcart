@@ -2,115 +2,123 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartCart</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartCart OCR</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
     body {
+      background-color: #121212;
+      color: white;
       font-family: Arial, sans-serif;
-      background: #121212;
-      color: #fff;
       text-align: center;
       padding: 20px;
     }
-    video {
+    #video {
       width: 100%;
       max-width: 400px;
       border-radius: 10px;
-      margin-bottom: 10px;
     }
-    #precos {
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      pointer-events: none;
+    }
+    .camera-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    #output {
       margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      align-items: center;
-    }
-    .preco-btn {
-      padding: 15px 30px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 10px;
       font-size: 1.5em;
-      cursor: pointer;
     }
     #manualInput {
-      margin-top: 20px;
+      margin-top: 30px;
     }
     #manualInput input {
-      padding: 12px;
+      padding: 10px;
       font-size: 1.2em;
-      border-radius: 8px;
+      border-radius: 10px;
       border: none;
-      width: 160px;
+      width: 150px;
       margin-right: 10px;
     }
     #manualInput button {
-      padding: 12px 24px;
+      padding: 10px 20px;
       font-size: 1.2em;
-      background: #2196F3;
+      background-color: #1DB954;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-    }
-    #total {
-      font-size: 2em;
-      margin-top: 30px;
-      color: #81C784;
     }
   </style>
 </head>
 <body>
-  <h1>SmartCart</h1>
-  <video id="video" autoplay playsinline></video>
+  <h1>SmartCart OCR</h1>
+  <div class="camera-wrapper">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="overlay"></canvas>
+  </div>
+  <div id="output">Reconhecimento: <span id="recognizedText">Aguardando...</span></div>
 
   <div id="manualInput">
-    <input type="number" id="manualValue" step="0.01" placeholder="Digite o valor">
-    <button onclick="adicionarManual()">➕ Adicionar Manualmente</button>
+    <input type="number" id="manualValue" placeholder="Digite o valor">
+    <button onclick="adicionarManual()">Adicionar Manualmente</button>
   </div>
 
-  <div id="total">Total: R$ <span id="soma">0.00</span></div>
-  <div id="precos"></div>
-
   <script>
-    let total = 0;
-    const somaSpan = document.getElementById("soma");
-    const precosDiv = document.getElementById("precos");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const recognizedText = document.getElementById("recognizedText");
+
+    let ultimaLeitura = "";
 
     async function iniciarCamera() {
-      const video = document.getElementById("video");
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
         video.srcObject = stream;
       } catch (err) {
-        console.warn("Erro ao acessar câmera:", err);
+        console.error("Erro ao acessar câmera:", err);
+        alert("Erro ao acessar câmera.");
       }
+    }
+
+    function capturarFrameEProcessar() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      Tesseract.recognize(canvas, 'eng', {
+        logger: m => console.log(m)
+      }).then(({ data: { text } }) => {
+        if (text && text.trim() !== "" && text.trim() !== ultimaLeitura) {
+          ultimaLeitura = text.trim();
+          recognizedText.textContent = ultimaLeitura;
+        }
+      });
     }
 
     function adicionarManual() {
       const input = document.getElementById("manualValue");
-      const valor = parseFloat(input.value.replace(',', '.'));
-      if (!isNaN(valor) && valor > 0) {
-        const btn = document.createElement('div');
-        btn.className = 'preco-btn';
-        btn.innerText = `R$ ${valor.toFixed(2)}`;
-        btn.onclick = () => removerPreco(btn, valor);
-        precosDiv.appendChild(btn);
-        total += valor;
-        somaSpan.innerText = total.toFixed(2);
-        input.value = '';
+      const valor = input.value.trim();
+      if (valor !== "") {
+        recognizedText.textContent = valor;
+        ultimaLeitura = valor;
+        input.value = "";
       }
     }
 
-    function removerPreco(btn, valor) {
-      btn.remove();
-      total -= valor;
-      somaSpan.innerText = total.toFixed(2);
-    }
-
     iniciarCamera();
+    setInterval(capturarFrameEProcessar, 3000);
   </script>
 </body>
 </html>
