@@ -1,13 +1,14 @@
 
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>SmartCart</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-  <style>
+<meta charset="utf-8"/>
+<title>SmartCart</title>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+<style>
 h1 { font-size: 3rem; }
 
     body {
@@ -129,7 +130,6 @@ h1 { font-size: 3rem; }
       margin-top: 15px;
     }
   </style>
-
 <style>
 h1 { font-size: 3rem; }
 
@@ -166,50 +166,40 @@ h1 { font-size: 3rem; }
     pointer-events: none;
   }
 </style>
-
 </head>
-
 <body>
-
 <div style="text-align:center; margin-top: 10px;">
-  <h1 style="margin: 0;">🛒 SmartCart</h1>
-  <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
+<h1 style="margin: 0;">🛒 SmartCart</h1><div id="totalSuperior" style=" color: green;">🧾 R$ 0,00</div>
+<div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
 </div>
-
 <div class="container">
-  <div class="camera-box">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-  </div>
-  <div class="output-box">
-    <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
-    <div id="lista"></div>
-    <div class="controle-extra">
-      </div>
-  </div>
+<div class="camera-box">
+<video autoplay="" id="video" muted="" playsinline=""></video>
+<canvas id="canvas" style="display:none;"></canvas>
 </div>
+<div class="output-box">
+<div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
+<div id="lista"></div>
+<div class="controle-extra">
+</div>
+</div>
+</div>
+<header>
 
-  <header>
-    <div id="totalSuperior">🧾 R$ 0,00</div>
-  </header>
-
-  <h2>SmartCart</h2>
-
-  <div id="cameraContainer">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    <div id="focusBox"></div>
-  </div>
-
-  <div id="resultado" class="resultado" style="display:none;"></div>
-
-  <div id="listaProdutos" class="lista" style="display:none;">
-    <h3>🛒 Produtos Adicionados</h3>
-    <ul id="produtos"></ul>
-    <p id="total">🧾 Total: R$ 0,00</p>
-  </div>
-
-  <script>
+</header>
+<h2>SmartCart</h2>
+<div id="cameraContainer">
+<video autoplay="" id="video" playsinline=""></video>
+<canvas id="canvas" style="display:none;"></canvas>
+<div id="focusBox"></div>
+</div>
+<div class="resultado" id="resultado" style="display:none;"></div>
+<div class="lista" id="listaProdutos" style="display:none;">
+<h3>🛒 Produtos Adicionados</h3>
+<ul id="produtos"></ul>
+<p id="total">🧾 Total: R$ 0,00</p>
+</div>
+<script>
     let ocrAtivo = true;
     let produtosConfirmados = [];
     let total = 0;
@@ -386,7 +376,6 @@ function detectarMelhoresNomes(textoOCR) {
   };
 }
 </script>
-
 <script>
 function adicionarManual() {
   const nome = prompt("Digite o nome do produto:");
@@ -416,7 +405,6 @@ function zerarTudo() {
   }
 }
 </script>
-
 <script>
 const retangulo = document.createElement('div');
 retangulo.className = 'retangulo';
@@ -447,11 +435,6 @@ function desenharRetangulo() {
 
 setInterval(desenharRetangulo, 1000);
 </script>
-
-
-
-
 <div id="retangulo"></div>
 </body>
-
 </html>
