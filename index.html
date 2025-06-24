@@ -23,18 +23,33 @@
       padding-bottom: 40px;
     }
 
+    header {
+      width: 100%;
+      max-width: 420px;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #totalSuperior {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #00ffea;
+    }
+
     h2 {
-      margin-top: 20px;
-      font-size: 2rem;
+      font-size: 1.8rem;
       color: #00b4d8;
       text-align: center;
+      margin: 10px 0;
     }
 
     #cameraContainer {
       position: relative;
       width: 100%;
       max-width: 420px;
-      margin: 20px 0;
+      margin: 10px 0 20px;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 0 12px #0077b6;
@@ -80,30 +95,30 @@
       background: #102030;
       border: 1px solid #00b4d8;
       border-radius: 10px;
-      padding: 14px;
+      padding: 16px;
       margin: 12px 0;
       text-align: center;
     }
 
     .opcao strong {
       display: block;
-      margin-bottom: 10px;
-      font-size: 1.1rem;
+      margin-bottom: 12px;
+      font-size: 1.2rem;
     }
 
     button {
       background-color: #00b4d8;
       color: #000;
       border: none;
-      padding: 14px 20px;
+      padding: 18px 26px;
       font-weight: 600;
-      font-size: 1.1rem;
-      border-radius: 8px;
+      font-size: 1.3rem;
+      border-radius: 10px;
       cursor: pointer;
       transition: background 0.3s ease, transform 0.2s ease;
       width: 100%;
-      max-width: 300px;
-      margin: 10px auto 0;
+      max-width: 320px;
+      margin: 12px auto 0;
       display: block;
     }
 
@@ -121,16 +136,26 @@
       margin-bottom: 10px;
     }
 
-    #total {
-      margin-top: 16px;
-      font-weight: bold;
-      color: #00ffea;
-      font-size: 1.2rem;
-      text-align: center;
+    .actions {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      gap: 12px;
+    }
+
+    .actions button {
+      flex: 1;
+      font-size: 1rem;
+      padding: 12px 10px;
+      max-width: none;
     }
   </style>
 </head>
 <body>
+  <header>
+    <div id="totalSuperior">🧾 R$ 0,00</div>
+  </header>
+
   <h2>SmartCart – Leitura Inteligente</h2>
 
   <div id="cameraContainer">
@@ -140,18 +165,23 @@
   </div>
 
   <div class="container">
+    <div class="actions">
+      <button onclick="zerarTotal()">🗑️ Zerar Total</button>
+      <button onclick="desfazerUltimo()">↩️ Desfazer Último</button>
+    </div>
+
     <div id="resultado" class="box" style="display:none;"></div>
 
     <div id="listaProdutos" class="box" style="display:none;">
       <h3>🛒 Produtos Adicionados</h3>
       <ul id="produtos"></ul>
-      <p id="total">🧾 Total: R$ 0,00</p>
     </div>
   </div>
 
   <script>
     let ocrAtivo = true;
     let produtosConfirmados = [];
+    let historicoTotais = [];
     let total = 0;
 
     function detectarMelhoresNomes(textoOCR) {
@@ -199,7 +229,7 @@
     const resultadoDiv = document.getElementById('resultado');
     const listaDiv = document.getElementById('listaProdutos');
     const listaUL = document.getElementById('produtos');
-    const totalSpan = document.getElementById('total');
+    const totalSuperior = document.getElementById('totalSuperior');
     const context = canvas.getContext('2d');
 
     async function iniciarCamera() {
@@ -247,6 +277,8 @@
     }
 
     function confirmarProduto(nome, preco) {
+      if (historicoTotais.length >= 10) historicoTotais.shift();
+      historicoTotais.push({ nome, preco });
       produtosConfirmados.push({ nome, preco });
       total += preco;
       atualizarLista();
@@ -266,8 +298,28 @@
         item.textContent = `${p.nome} – R$ ${p.preco.toFixed(2).replace('.', ',')}`;
         listaUL.appendChild(item);
       });
-      totalSpan.textContent = `🧾 Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+      totalSuperior.textContent = `🧾 R$ ${total.toFixed(2).replace('.', ',')}`;
       listaDiv.style.display = 'block';
+    }
+
+    function zerarTotal() {
+      produtosConfirmados = [];
+      total = 0;
+      historicoTotais = [];
+      atualizarLista();
+      listaDiv.style.display = 'none';
+    }
+
+    function desfazerUltimo() {
+      const ultimo = historicoTotais.pop();
+      if (ultimo) {
+        const index = produtosConfirmados.findIndex(p => p.nome === ultimo.nome && p.preco === ultimo.preco);
+        if (index !== -1) {
+          produtosConfirmados.splice(index, 1);
+          total -= ultimo.preco;
+          atualizarLista();
+        }
+      }
     }
 
     async function loopOCR() {
