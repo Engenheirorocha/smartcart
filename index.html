@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartCart OCR</title>
+  <title>SmartCart</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
     body {
@@ -56,25 +56,10 @@
       align-items: center;
       justify-content: center;
     }
-    .lixeira {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: red;
-      border-radius: 50%;
-      color: white;
-      font-size: 0.8em;
-      cursor: pointer;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .btn-controle {
+    .btn-controle, .btn-total {
       margin-top: 15px;
     }
-    .btn-controle button {
+    .btn-controle button, .btn-total button {
       background: #FF5252;
       color: white;
       border: none;
@@ -82,43 +67,37 @@
       border-radius: 8px;
       font-size: 1em;
       cursor: pointer;
+      margin: 5px;
     }
     #total {
       font-size: 2em;
       margin-top: 20px;
       color: #81C784;
     }
-    #popup {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #1e1e1e;
-      padding: 20px;
-      border-radius: 10px;
-      display: none;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 1000;
+    #manualInput {
+      margin-top: 20px;
     }
-    #popup input {
-      font-size: 1.2em;
+    #manualInput input {
       padding: 10px;
-      border-radius: 5px;
+      font-size: 1.2em;
+      border-radius: 8px;
       border: none;
+      width: 120px;
+      margin-right: 10px;
     }
-    #popup button {
+    #manualInput button {
       font-size: 1.2em;
-      padding: 10px;
-      border-radius: 5px;
-      border: none;
-      background-color: #4CAF50;
+      padding: 10px 20px;
+      background: #1E88E5;
       color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>SmartCart OCR</h1>
+  <h1>SmartCart</h1>
   <div class="container">
     <div style="position: relative;">
       <video id="video" autoplay playsinline></video>
@@ -129,23 +108,23 @@
       <div class="btn-controle">
         <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
         <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
-        <button onclick="abrirPopup()">➕ Adicionar manualmente</button>
       </div>
     </div>
   </div>
-  <div id="popup">
-    <input type="text" id="valorManual" placeholder="Ex: 10.50">
-    <button onclick="adicionarManual()">Adicionar</button>
+  <div id="manualInput">
+    <input type="number" id="valorManual" step="0.01" placeholder="0.00">
+    <button onclick="adicionarManual()">➕ Adicionar</button>
   </div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
-
+  <div class="btn-total">
+    <button onclick="zerarTotal()">🔄 Zerar Total</button>
+  </div>
   <script>
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
-    const popup = document.getElementById('popup');
-    const valorManual = document.getElementById('valorManual');
+    const inputManual = document.getElementById('valorManual');
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
@@ -172,6 +151,16 @@
       sugestoesFixas = false;
     }
 
+    function adicionarManual() {
+      const valor = parseFloat(inputManual.value);
+      if (!isNaN(valor) && valor > 0) {
+        adicionarPreco(valor);
+        inputManual.value = '';
+      } else {
+        alert("Digite um valor válido.");
+      }
+    }
+
     function removerPreco(btn, valor) {
       total -= valor;
       if (total < 0) total = 0;
@@ -193,19 +182,9 @@
       sugestoesFixas = false;
     }
 
-    function abrirPopup() {
-      popup.style.display = 'flex';
-      valorManual.value = '';
-    }
-
-    function adicionarManual() {
-      const valor = parseFloat(valorManual.value.replace(',', '.'));
-      if (!isNaN(valor)) {
-        adicionarPreco(valor);
-        popup.style.display = 'none';
-      } else {
-        alert("Digite um valor válido.");
-      }
+    function zerarTotal() {
+      total = 0;
+      somaSpan.innerText = total.toFixed(2);
     }
 
     function desenharROI() {
