@@ -420,17 +420,25 @@ document.body.appendChild(retangulo);
 
 function desenharRetangulo() {
   const video = document.getElementById('video');
-  if (!video.videoWidth || !video.videoHeight) return;
+  const retangulo = document.getElementById('retangulo');
+  if (!video || !retangulo || !video.offsetWidth || !video.offsetHeight) return;
 
-  const largura = video.offsetWidth;
-  const altura = video.offsetHeight;
-  const top = video.offsetTop + altura * 0.4;
-  const left = video.offsetLeft;
+  const bounding = video.getBoundingClientRect();
 
-  retangulo.style.width = largura + 'px';
-  retangulo.style.height = (altura * 0.2) + 'px';
-  retangulo.style.top = top + 'px';
-  retangulo.style.left = left + 'px';
+  const larguraRet = bounding.width * 0.6; // Reduzido 40%
+  const alturaRet = bounding.height * 0.24; // Aumentado 20%
+
+  const top = bounding.top + (bounding.height - alturaRet) / 2 + window.scrollY;
+  const left = bounding.left + (bounding.width - larguraRet) / 2 + window.scrollX;
+
+  retangulo.style.position = 'absolute';
+  retangulo.style.width = `${larguraRet}px`;
+  retangulo.style.height = `${alturaRet}px`;
+  retangulo.style.top = `${top}px`;
+  retangulo.style.left = `${left}px`;
+  retangulo.style.border = '2px solid red';
+  retangulo.style.zIndex = '10';
+  retangulo.style.pointerEvents = 'none';
 }
 
 setInterval(desenharRetangulo, 1000);
