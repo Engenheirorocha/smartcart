@@ -212,6 +212,7 @@
     let ocrAtivo = true;
     let produtosConfirmados = [];
     let total = 0;
+let produtosConfirmados = [];
 
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -395,24 +396,35 @@ function adicionarManual() {
   }
 }
 
+
 function desfazerUltimo() {
-  if (historico.length > 0) {
-    const ultimo = historico.pop();
-    total -= ultimo.valor;
-    produtos = produtos.filter(p => !(p.nome === ultimo.nome && p.valor === ultimo.valor));
-    atualizarLista();
+  if (produtosConfirmados.length > 0) {
+    const removido = produtosConfirmados.pop();
+    total -= removido.valor;
+
+    const produtosUL = document.getElementById('produtos');
+    produtosUL.removeChild(produtosUL.lastChild);
+
+    atualizarTotal();
   } else {
+    alert("Nenhum item para desfazer.");
+  }
+}
+ else {
     alert("Nada para desfazer.");
   }
 }
 
+
 function zerarTudo() {
-  if (confirm("Tem certeza que deseja zerar a lista?")) {
-    produtos = [];
-    historico = [];
+  if (confirm("Tem certeza que deseja zerar a lista e o total?")) {
+    produtosConfirmados = [];
     total = 0;
-    atualizarLista();
+    document.getElementById('produtos').innerHTML = '';
+    atualizarTotal();
   }
+}
+
 }
 </script>
 
