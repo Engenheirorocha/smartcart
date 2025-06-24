@@ -2,63 +2,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<style>
-  body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    color: #222;
-  }
-
-  #totalDisplay {
-    font-size: 2em;
-    font-weight: bold;
-    color: #00b894;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  }
-
-  #retangulo {
-    border: 2px solid #00b894 !important;
-    border-radius: 8px;
-  }
-
-  .botao {
-    font-size: 1.2em !important;
-    padding: 16px 28px !important;
-    margin: 12px 8px !important;
-    border: none;
-    border-radius: 8px;
-    background-color: #0984e3;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  .botao:hover {
-    background-color: #74b9ff;
-  }
-
-  .cabecalho {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    background-color: #dfe6e9;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-bottom: 2px solid #b2bec3;
-  }
-
-  .cabecalho img {
-    width: 40px;
-    margin-right: 10px;
-  }
-
-  .valor-total {
-    font-size: 1.8em;
-    font-weight: bold;
-    margin-left: auto;
-  }
-</style>
   <meta charset="UTF-8" />
   <title>SmartCart</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -243,63 +186,6 @@
 </div>
 
   <header>
-<style>
-  body {
-    font-family: 'Poppins', sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 0;
-    color: #222;
-  }
-
-  #totalDisplay {
-    font-size: 2em;
-    font-weight: bold;
-    color: #00b894;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  }
-
-  #retangulo {
-    border: 2px solid #00b894 !important;
-    border-radius: 8px;
-  }
-
-  .botao {
-    font-size: 1.2em !important;
-    padding: 16px 28px !important;
-    margin: 12px 8px !important;
-    border: none;
-    border-radius: 8px;
-    background-color: #0984e3;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-
-  .botao:hover {
-    background-color: #74b9ff;
-  }
-
-  .cabecalho {
-    display: flex;
-    align-items: center;
-    padding: 20px;
-    background-color: #dfe6e9;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-bottom: 2px solid #b2bec3;
-  }
-
-  .cabecalho img {
-    width: 40px;
-    margin-right: 10px;
-  }
-
-  .valor-total {
-    font-size: 1.8em;
-    font-weight: bold;
-    margin-left: auto;
-  }
-</style>
     <div id="totalSuperior">🧾 R$ 0,00</div>
   </header>
 
@@ -370,12 +256,12 @@
           html += `
             <div class="opcao">
               <strong>${op.texto}</strong>
-              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})" class="botao">Adicionar</button>
+              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
             </div>
           `;
         });
 
-        html += `<button onclick="excluirProduto()" class="botao">Excluir</button>`;
+        html += `<button onclick="excluirProduto()">Excluir</button>`;
         resultadoDiv.innerHTML = html;
         resultadoDiv.style.display = 'block';
       });
