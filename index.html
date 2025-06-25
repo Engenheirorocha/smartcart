@@ -173,10 +173,10 @@
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const focoY = canvas.height * 0.4;
-      const focoAlt = canvas.height * 0.2;
-      const focoX = 0;
-      const focoLarg = canvas.width;
+      const focoY = canvas.height * 0.33;
+      focoAlt = canvas.height * 0.34;
+      focoX = canvas.width * 0.075;
+      focoLarg = canvas.width * 0.85;
 
       const imageData = context.getImageData(focoX, focoY, focoLarg, focoAlt);
       const tempCanvas = document.createElement('canvas');
