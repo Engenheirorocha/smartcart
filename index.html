@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -120,79 +119,23 @@
       margin-bottom: 10px;
     }
 
-    #total {
+    #totalResumo {
       font-weight: bold;
       color: #00ffaa;
       font-size: 1.2rem;
       margin-top: 15px;
     }
   </style>
-
-<style>
-  .container {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    gap: 20px;
-    margin-top: 20px;
-  }
-  .camera-box {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .output-box {
-    flex: 1;
-    padding: 10px;
-  }
-  #resultado {
-    margin-top: 10px;
-  }
-  .controle-extra {
-    margin-top: 10px;
-  }
-  #video {
-    max-width: 100%;
-    border-radius: 8px;
-  }
-  .retangulo {
-    border: 2px dashed red;
-    position: absolute;
-    pointer-events: none;
-  }
-</style>
-
 </head>
 
 <body>
-
-<div style="text-align:center; margin-top: 10px;">
-  <h1 style="margin: 0;">🛒 SmartCart</h1>
-  <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
-</div>
-
-<div class="container">
-  <div class="camera-box">
-    <video id="video" autoplay muted playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-  </div>
-  <div class="output-box">
-    <div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
-    <div id="lista"></div>
-    <div class="controle-extra">
-      </div>
-  </div>
-</div>
-
   <header>
+    <h1>🛒 SmartCart</h1>
     <div id="totalSuperior">🧾 R$ 0,00</div>
   </header>
 
-  <h2>SmartCart</h2>
-
   <div id="cameraContainer">
-    <video id="video" autoplay playsinline></video>
+    <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas" style="display:none;"></canvas>
     <div id="focusBox"></div>
   </div>
@@ -202,7 +145,7 @@
   <div id="listaProdutos" class="lista" style="display:none;">
     <h3>🛒 Produtos Adicionados</h3>
     <ul id="produtos"></ul>
-    <p id="total">🧾 Total: R$ 0,00</p>
+    <p id="totalResumo">🧾 Total: R$ 0,00</p>
   </div>
 
   <script>
@@ -215,7 +158,7 @@
     const resultadoDiv = document.getElementById('resultado');
     const listaDiv = document.getElementById('listaProdutos');
     const listaUL = document.getElementById('produtos');
-    const totalSpan = document.getElementById('total');
+    const totalResumo = document.getElementById('totalResumo');
     const totalSuperior = document.getElementById('totalSuperior');
     const context = canvas.getContext('2d');
 
@@ -269,7 +212,7 @@
 
     function detectarMelhoresNomes(textoOCR) {
       const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric'];
+      const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric', 'leve'];
       const marcas = ['Italac', 'Tio João', 'Ninho', 'Qualitá', 'Sadia', 'Nestlé'];
       const unidades = ['kg', 'g', 'ml', 'l', 'L', 'un', 'und'];
       const opcoes = [];
@@ -278,11 +221,11 @@
       for (const linha of linhas) {
         const linhaLimpa = linha.toLowerCase();
         const temPreco = /(r\$\s*|por\s*|preço\s*)?\d{1,3}[.,]\d{2}/.test(linhaLimpa);
-
         const precos = linha.match(/(r\$\s?)?(\d{1,3}[.,]\d{2})/gi);
+
         if (precos && temPreco && !palavrasBanidas.some(p => linhaLimpa.includes(p))) {
           precos.forEach(p => {
-            const num = p.replace(/[^0-9,\.]/g, '').replace(',', '.');
+            const num = p.replace(/[^0-9,.]/g, '').replace(',', '.');
             const val = parseFloat(num);
             if (val > 0.5 && val < 500) precosDetectados.push(val);
           });
@@ -294,16 +237,17 @@
         if (marcas.some(m => linha.includes(m))) pontos += 3;
         if (unidades.some(u => linhaLimpa.includes(u))) pontos += 2;
         if (!palavrasBanidas.some(p => linhaLimpa.includes(p))) pontos += 2;
-        if (linha === linha.toUpperCase()) pontos += 1;
+        if (linha === linha.toUpperCase()) pontos += 2;
+        if (linha.length > 12) pontos += 1;
 
         opcoes.push({ texto: linha, pontos });
       }
 
       opcoes.sort((a, b) => b.pontos - a.pontos);
-      const precoFinal = precosDetectados.sort((a, b) => a - b)[0];
+      const precoFinal = Math.max(...precosDetectados);
       return {
-        opcoes: opcoes.slice(0, 3),
-        preco: precoFinal ? parseFloat(precoFinal.toFixed(2)) : null
+        opcoes: opcoes.length > 0 ? [opcoes[0]] : [],
+        preco: isFinite(precoFinal) ? parseFloat(precoFinal.toFixed(2)) : null
       };
     }
 
@@ -327,7 +271,7 @@
         item.textContent = `${p.nome} – R$ ${p.preco.toFixed(2).replace('.', ',')}`;
         listaUL.appendChild(item);
       });
-      totalSpan.textContent = `🧾 Total: R$ ${total.toFixed(2).replace('.', ',')}`;
+      totalResumo.textContent = `🧾 Total: R$ ${total.toFixed(2).replace('.', ',')}`;
       totalSuperior.textContent = `🧾 R$ ${total.toFixed(2).replace('.', ',')}`;
       listaDiv.style.display = 'block';
     }
@@ -339,115 +283,5 @@
 
     iniciarCamera().then(loopOCR);
   </script>
-<script>
-function detectarMelhoresNomes(textoOCR) {
-  const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric', 'leve'];
-  const marcas = ['Italac', 'Tio João', 'Ninho', 'Qualitá', 'Sadia', 'Nestlé'];
-  const unidades = ['kg', 'g', 'ml', 'l', 'L', 'un', 'und'];
-  const opcoes = [];
-  const precosDetectados = [];
-
-  for (const linha of linhas) {
-    const linhaLimpa = linha.toLowerCase();
-    const temPreco = /(r\$\s*|por\s*|preço\s*)?\d{1,3}[.,]\d{2}/.test(linhaLimpa);
-
-    const precos = linha.match(/(r\$\s?)?(\d{1,3}[.,]\d{2})/gi);
-    if (precos && temPreco && !palavrasBanidas.some(p => linhaLimpa.includes(p))) {
-      precos.forEach(p => {
-        const num = p.replace(/[^0-9,\.]/g, '').replace(',', '.');
-        const val = parseFloat(num);
-        if (val > 0.5 && val < 500) precosDetectados.push(val);
-      });
-    }
-
-    let pontos = 0;
-    const palavras = linha.split(' ');
-
-    if (palavras.length >= 2) pontos += 2;
-    if (marcas.some(m => linha.includes(m))) pontos += 3;
-    if (unidades.some(u => linhaLimpa.includes(u))) pontos += 2;
-    if (!palavrasBanidas.some(p => linhaLimpa.includes(p))) pontos += 2;
-    if (linha === linha.toUpperCase()) pontos += 2;
-    if (linha.length > 12) pontos += 1;
-
-    opcoes.push({ texto: linha, pontos });
-  }
-
-  opcoes.sort((a, b) => b.pontos - a.pontos);
-  const precoFinal = Math.max(...precosDetectados);
-  return {
-    opcoes: opcoes.length > 0 ? [opcoes[0]] : [],
-    preco: isFinite(precoFinal) ? parseFloat(precoFinal.toFixed(2)) : null
-  };
-}
-</script>
-
-<script>
-function adicionarManual() {
-  const nome = prompt("Digite o nome do produto:");
-  const valor = prompt("Digite o valor (ex: 4.99):");
-  if (nome && valor && !isNaN(parseFloat(valor))) {
-    adicionarProduto(nome, parseFloat(valor));
-  }
-}
-
-function desfazerUltimo() {
-  if (historico.length > 0) {
-    const ultimo = historico.pop();
-    total -= ultimo.valor;
-    produtos = produtos.filter(p => !(p.nome === ultimo.nome && p.valor === ultimo.valor));
-    atualizarLista();
-  } else {
-    alert("Nada para desfazer.");
-  }
-}
-
-function zerarTudo() {
-  if (confirm("Tem certeza que deseja zerar a lista?")) {
-    produtos = [];
-    historico = [];
-    total = 0;
-    atualizarLista();
-  }
-}
-</script>
-
-<script>
-const retangulo = document.createElement('div');
-retangulo.className = 'retangulo';
-document.body.appendChild(retangulo);
-
-function desenharRetangulo() {
-  const video = document.getElementById('video');
-  const retangulo = document.getElementById('retangulo');
-  if (!video || !retangulo || !video.offsetWidth || !video.offsetHeight) return;
-
-  const bounding = video.getBoundingClientRect();
-
-  const larguraRet = bounding.width * 0.6; // Reduzido 40%
-  const alturaRet = bounding.height * 0.24; // Aumentado 20%
-
-  const top = bounding.top + (bounding.height - alturaRet) / 2 + window.scrollY;
-  const left = bounding.left + (bounding.width - larguraRet) / 2 + window.scrollX;
-
-  retangulo.style.position = 'absolute';
-  retangulo.style.width = `${larguraRet}px`;
-  retangulo.style.height = `${alturaRet}px`;
-  retangulo.style.top = `${top}px`;
-  retangulo.style.left = `${left}px`;
-  retangulo.style.border = '2px solid red';
-  retangulo.style.zIndex = '10';
-  retangulo.style.pointerEvents = 'none';
-}
-
-setInterval(desenharRetangulo, 1000);
-</script>
-
-
-
-
-<div id="retangulo"></div>
 </body>
-
 </html>
