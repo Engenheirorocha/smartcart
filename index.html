@@ -4,7 +4,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"/>
-<title>SmartCart</title>
+
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
@@ -183,7 +183,7 @@ h1 { font-size: 3rem; }
 </div>
 </div>
 <div style="text-align:center; margin-top: 10px;">
-<h1 style="margin: 0;">🛒 SmartCart</h1><div id="totalSuperior" style=" color: green;">🧾 R$ 0,00</div>
+<h1 style="margin: 0;">🛒 SmartCart</h1>
 <div id="total" style="font-size: 28px; font-weight: bold; margin: 5px 0;">Total: R$ 0,00</div>
 </div>
 <div class="container">
@@ -192,7 +192,7 @@ h1 { font-size: 3rem; }
 <canvas id="canvas" style="display:none;"></canvas>
 </div>
 <div class="output-box">
-<div id="total" style="font-size: 28px; font-weight: bold;">Total: R$ 0,00</div>
+
 <div id="lista"></div>
 <div class="controle-extra">
 </div>
@@ -200,7 +200,7 @@ h1 { font-size: 3rem; }
 </div>
 <header>
 </header>
-<h2>SmartCart</h2>
+
 <div id="cameraContainer">
 <video autoplay="" id="video" playsinline=""></video>
 <canvas id="canvas" style="display:none;"></canvas>
@@ -212,140 +212,7 @@ h1 { font-size: 3rem; }
 <ul id="produtos"></ul>
 
 </div>
-<script>
-    let ocrAtivo = true;
-    let produtosConfirmados = [];
-    let total = 0;
 
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const resultadoDiv = document.getElementById('resultado');
-    const listaDiv = document.getElementById('listaProdutos');
-    const listaUL = document.getElementById('produtos');
-    const totalSpan = document.getElementById('total');
-    const totalSuperior = document.getElementById('totalSuperior');
-    const context = canvas.getContext('2d');
-
-    async function iniciarCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      video.srcObject = stream;
-    }
-
-    async function processarOCR() {
-      if (!ocrAtivo || !video.videoWidth || !video.videoHeight) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const focoY = canvas.height * 0.4;
-      const focoAlt = canvas.height * 0.2;
-      const focoX = 0;
-      const focoLarg = canvas.width;
-
-      const imageData = context.getImageData(focoX, focoY, focoLarg, focoAlt);
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = focoLarg;
-      tempCanvas.height = focoAlt;
-      tempCanvas.getContext('2d').putImageData(imageData, 0, 0);
-
-      tempCanvas.toBlob(async (blob) => {
-        const { data: { text } } = await Tesseract.recognize(blob, 'por');
-        const resultado = detectarMelhoresNomes(text);
-
-        if (!resultado.preco) {
-          ocrAtivo = true;
-          return;
-        }
-
-        ocrAtivo = false;
-        let html = `<strong>💰 Preço:</strong> R$ ${resultado.preco.toFixed(2).replace('.', ',')}<br><br>`;
-        resultado.opcoes.forEach(op => {
-          html += `
-            <div class="opcao">
-              <strong>${op.texto}</strong>
-              <button onclick="confirmarProduto('${op.texto}', ${resultado.preco})">Adicionar</button>
-            </div>
-          `;
-        });
-
-        html += `<button onclick="excluirProduto()">Excluir</button>`;
-        resultadoDiv.innerHTML = html;
-        resultadoDiv.style.display = 'block';
-      });
-    }
-
-    function detectarMelhoresNomes(textoOCR) {
-      const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      const palavrasBanidas = ['val', 'validade', 'promoção', 'data', 'expira', 'venc', 'fabric'];
-      const marcas = ['Italac', 'Tio João', 'Ninho', 'Qualitá', 'Sadia', 'Nestlé'];
-      const unidades = ['kg', 'g', 'ml', 'l', 'L', 'un', 'und'];
-      const opcoes = [];
-      const precosDetectados = [];
-
-      for (const linha of linhas) {
-        const linhaLimpa = linha.toLowerCase();
-        const temPreco = /(r\$\s*|por\s*|preço\s*)?\d{1,3}[.,]\d{2}/.test(linhaLimpa);
-
-        const precos = linha.match(/(r\$\s?)?(\d{1,3}[.,]\d{2})/gi);
-        if (precos && temPreco && !palavrasBanidas.some(p => linhaLimpa.includes(p))) {
-          precos.forEach(p => {
-            const num = p.replace(/[^0-9,\.]/g, '').replace(',', '.');
-            const val = parseFloat(num);
-            if (val > 0.5 && val < 500) precosDetectados.push(val);
-          });
-        }
-
-        let pontos = 0;
-        const palavras = linha.split(' ');
-        if (palavras.length >= 2) pontos += 2;
-        if (marcas.some(m => linha.includes(m))) pontos += 3;
-        if (unidades.some(u => linhaLimpa.includes(u))) pontos += 2;
-        if (!palavrasBanidas.some(p => linhaLimpa.includes(p))) pontos += 2;
-        if (linha === linha.toUpperCase()) pontos += 1;
-
-        opcoes.push({ texto: linha, pontos });
-      }
-
-      opcoes.sort((a, b) => b.pontos - a.pontos);
-      const precoFinal = precosDetectados.sort((a, b) => a - b)[0];
-      return {
-        opcoes: opcoes.slice(0, 3),
-        preco: precoFinal ? parseFloat(precoFinal.toFixed(2)) : null
-      };
-    }
-
-    function confirmarProduto(nome, preco) {
-      produtosConfirmados.push({ nome, preco });
-      total += preco;
-      atualizarLista();
-      resultadoDiv.style.display = 'none';
-      ocrAtivo = true;
-    }
-
-    function excluirProduto() {
-      resultadoDiv.style.display = 'none';
-      ocrAtivo = true;
-    }
-
-    function atualizarLista() {
-      listaUL.innerHTML = '';
-      produtosConfirmados.forEach(p => {
-        const item = document.createElement('li');
-        item.textContent = `${p.nome} – R$ ${p.preco.toFixed(2).replace('.', ',')}`;
-        listaUL.appendChild(item);
-      });
-      totalSpan.textContent = `🧾 Total: R$ ${total.toFixed(2).replace('.', ',')}`;
-      totalSuperior.textContent = `🧾 R$ ${total.toFixed(2).replace('.', ',')}`;
-      listaDiv.style.display = 'block';
-    }
-
-    async function loopOCR() {
-      await processarOCR();
-      setTimeout(loopOCR, 2000);
-    }
-
-    iniciarCamera().then(loopOCR);
-  </script>
 <script>
 function detectarMelhoresNomes(textoOCR) {
   const linhas = textoOCR.split('\n').map(l => l.trim()).filter(l => l.length > 0);
