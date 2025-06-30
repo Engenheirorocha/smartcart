@@ -1,4 +1,3 @@
-
 <!-- SmartCart com OCR em tempo real + Firestore -->
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -110,19 +109,39 @@
         .catch(err => alert("Erro ao acessar câmera: " + err));
 
       function carregarOCR() {
-        if (reconhecendo) return;
+        if (reconhecendo || !video.videoWidth || !video.videoHeight) return;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0);
+
+        // Coordenadas do retângulo (área central)
+        const rectWidth = canvas.width * 0.6;
+        const rectHeight = canvas.height * 0.3;
+        const rectX = (canvas.width - rectWidth) / 2;
+        const rectY = (canvas.height - rectHeight) / 2;
+
+        ctx.drawImage(video, rectX, rectY, rectWidth, rectHeight, 0, 0, rectWidth, rectHeight);
         reconhecendo = true;
 
         Tesseract.recognize(canvas, 'por', { logger: m => console.log(m) })
           .then(({ data: { text } }) => {
             const precoRegex = /R?\$?\s?(\d+[\.,]?\d{0,2})/gi;
+            let precos = {};
             let match;
             while ((match = precoRegex.exec(text)) !== null) {
-              const preco = parseFloat(match[1].replace(',', '.'));
-              if (!isNaN(preco) && !produtosLidos.includes(preco)) {
+              let preco = parseFloat(match[1].replace(',', '.'));
+              if (!isNaN(preco)) {
+                preco = parseFloat(preco.toFixed(2));
+                precos[preco] = (precos[preco] || 0) + 1;
+              }
+            }
+            // Selecionar os 3 preços com maior pontuação
+            const topPrecos = Object.entries(precos)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3);
+
+            for (const [precoStr, _] of topPrecos) {
+              const preco = parseFloat(precoStr);
+              if (!produtosLidos.includes(preco)) {
                 const produto = "Produto detectado";
                 const li = document.createElement("li");
                 const btn = document.createElement("button");
