@@ -1,2 +1,150 @@
 
-<!-- Conteúdo HTML atualizado salvo acima, reescrito para o arquivo de download -->
+<!-- SmartCart com OCR em tempo real + Firestore -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>SmartCart OCR + Firestore</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 10px;
+    }
+    video, canvas {
+      width: 90%;
+      max-width: 500px;
+      margin: 10px auto;
+      display: block;
+      border-radius: 10px;
+    }
+    #cameraContainer {
+      position: relative;
+      display: inline-block;
+    }
+    #retangulo {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60%;
+      height: 30%;
+      transform: translate(-50%, -50%);
+      border: 2px solid red;
+      box-sizing: border-box;
+      pointer-events: none;
+      border-radius: 10px;
+    }
+    #produtos ul {
+      list-style: none;
+      padding: 0;
+    }
+    #produtos li {
+      margin: 5px 0;
+      padding: 8px;
+      background: #f0f0f0;
+      border-radius: 6px;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfhmfxYmQ0gO3ACrCHeNZx83khMrDUD8U",
+      authDomain: "smartcart-app-dc796.firebaseapp.com",
+      projectId: "smartcart-app-dc796",
+      storageBucket: "smartcart-app-dc796.appspot.com",
+      messagingSenderId: "903830223010",
+      appId: "1:903830223010:web:9241e79644d2039c3e7ffb"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.enviarProdutoParaFirestore = async function(produto, preco) {
+      const dados = {
+        produto,
+        preco: parseFloat(preco),
+        mercado: "Mercado Local",
+        data: new Date(),
+        usuario_id: "scanner01",
+        pontos: 1,
+        validador_ids: ["scanner01"]
+      };
+
+      try {
+        await addDoc(collection(db, "precos_brutos"), dados);
+        console.log("Produto enviado: ", produto);
+      } catch (e) {
+        console.error("Erro ao enviar: ", e);
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <h1>🛒 SmartCart OCR + Firestore</h1>
+  <div id="cameraContainer">
+    <video id="camera" autoplay playsinline></video>
+    <div id="retangulo"></div>
+  </div>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <h3>Total: R$ <span id="total">0.00</span></h3>
+  <div id="produtos">
+    <ul id="lista"></ul>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const video = document.getElementById("camera");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const lista = document.getElementById("lista");
+      const totalDisplay = document.getElementById("total");
+
+      let reconhecendo = false;
+      let produtosLidos = [];
+      let total = 0;
+
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+        .then(stream => video.srcObject = stream)
+        .catch(err => alert("Erro ao acessar câmera: " + err));
+
+      function carregarOCR() {
+        if (reconhecendo) return;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        reconhecendo = true;
+
+        Tesseract.recognize(canvas, 'por', { logger: m => console.log(m) })
+          .then(({ data: { text } }) => {
+            const precoRegex = /R?\$?\s?(\d+[\.,]?\d{0,2})/gi;
+            let match;
+            while ((match = precoRegex.exec(text)) !== null) {
+              const preco = parseFloat(match[1].replace(',', '.'));
+              if (!isNaN(preco) && !produtosLidos.includes(preco)) {
+                const produto = "Produto detectado";
+                const li = document.createElement("li");
+                const btn = document.createElement("button");
+                btn.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
+                btn.onclick = () => {
+                  total += preco;
+                  totalDisplay.textContent = total.toFixed(2);
+                  enviarProdutoParaFirestore(produto, preco);
+                  li.remove();
+                };
+                li.appendChild(document.createTextNode(produto + ' '));
+                li.appendChild(btn);
+                lista.appendChild(li);
+                produtosLidos.push(preco);
+              }
+            }
+          })
+          .finally(() => reconhecendo = false);
+      }
+
+      setInterval(carregarOCR, 3000);
+    });
+  </script>
+</body>
+</html>
