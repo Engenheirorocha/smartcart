@@ -3,7 +3,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>SmartCart OCR Duplo</title>
+  <title>SmartCart OCR Único</title>
   <style>
     body { font-family: sans-serif; text-align: center; }
     video { width: 90%; max-width: 500px; border-radius: 10px; }
@@ -16,11 +16,12 @@
       pointer-events: none;
     }
     li { margin: 5px; padding: 8px; background: #eee; border-radius: 6px; }
+    button { margin: 0 5px; padding: 6px 12px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
 </head>
 <body>
-  <h1>SmartCart OCR Duplo</h1>
+  <h1>SmartCart OCR Único</h1>
   <div id="cameraContainer">
     <video id="camera" autoplay playsinline></video>
     <div id="retangulo"></div>
@@ -38,13 +39,14 @@
 
     let total = 0;
     let lidos = [];
+    let ocrAtivo = true;
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => video.srcObject = stream)
       .catch(err => alert("Erro: " + err));
 
     function capturaOCRPrecos() {
-      if (!video.videoWidth) return;
+      if (!video.videoWidth || !ocrAtivo) return;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
@@ -54,6 +56,8 @@
       const ry = (canvas.height - rh) / 2;
 
       ctx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh);
+
+      ocrAtivo = false;
 
       Tesseract.recognize(canvas, 'por', { logger: m => console.log(m) })
         .then(({ data: { text } }) => {
@@ -67,40 +71,44 @@
               precos[preco] = (precos[preco] || 0) + 1;
             }
           }
-          const top = Object.entries(precos).sort((a,b)=>b[1]-a[1]).slice(0,3);
-          for (const [str] of top) {
-            const preco = parseFloat(str);
+          const top = Object.entries(precos).sort((a,b)=>b[1]-a[1]);
+          if (top.length > 0) {
+            const preco = parseFloat(top[0][0]);
             if (!lidos.includes(preco)) {
               const li = document.createElement("li");
-              const btn = document.createElement("button");
-              btn.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
-              btn.onclick = () => {
+              const btnAdd = document.createElement("button");
+              const btnDel = document.createElement("button");
+
+              btnAdd.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
+              btnAdd.onclick = () => {
                 total += preco;
                 totalDisplay.textContent = total.toFixed(2);
+                lidos.push(preco);
                 li.remove();
+                ocrAtivo = true;
               };
+
+              btnDel.textContent = "Excluir";
+              btnDel.onclick = () => {
+                li.remove();
+                ocrAtivo = true;
+              };
+
               li.appendChild(document.createTextNode("Produto detectado "));
-              li.appendChild(btn);
+              li.appendChild(btnAdd);
+              li.appendChild(btnDel);
               lista.appendChild(li);
-              lidos.push(preco);
+            } else {
+              ocrAtivo = true;
             }
+          } else {
+            ocrAtivo = true;
           }
-        });
+        })
+        .catch(() => ocrAtivo = true);
     }
 
-    function capturaTextoProduto() {
-      if (!video.videoWidth) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      Tesseract.recognize(canvas, 'por')
-        .then(({ data: { text } }) => {
-          console.log("Texto detectado:", text);
-        });
-    }
-
-    setInterval(capturaOCRPrecos, 2000);  // Preços rápidos
-    setInterval(capturaTextoProduto, 6000);  // Nome do produto mais leve
+    setInterval(capturaOCRPrecos, 2000);
   </script>
 </body>
 </html>
