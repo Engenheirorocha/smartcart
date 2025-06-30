@@ -127,6 +127,46 @@
             const precoRegex = /R?\$?\s?(\d+[\.,]?\d{0,2})/gi;
             let precos = {};
             let match;
+            const palavrasChave = ["leite", "arroz", "café", "óleo", "feijão", "sabão", "pó", "kg", "un", "unidade", "caixa", "pacote", "promoção", "desconto", "itens", "nestlé", "italac", "tio joão", "refri", "refrigerante"];
+            while ((match = precoRegex.exec(text)) !== null) {
+              let preco = parseFloat(match[1].replace(',', '.'));
+              if (!isNaN(preco)) {
+                const contexto = text.toLowerCase().slice(Math.max(0, match.index - 25), match.index + 25);
+                const confiavel = palavrasChave.some(p => contexto.includes(p));
+                if (confiavel) {
+                  preco = parseFloat(preco.toFixed(2));
+                  precos[preco] = (precos[preco] || 0) + 1;
+                }
+              }
+            }
+            const topPrecos = Object.entries(precos)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3);
+
+            for (const [precoStr, _] of topPrecos) {
+              const preco = parseFloat(precoStr);
+              if (!produtosLidos.includes(preco)) {
+                const produto = "Produto detectado";
+                const li = document.createElement("li");
+                const btn = document.createElement("button");
+                btn.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
+                btn.onclick = () => {
+                  total += preco;
+                  totalDisplay.textContent = total.toFixed(2);
+                  enviarProdutoParaFirestore(produto, preco);
+                  li.remove();
+                };
+                li.appendChild(document.createTextNode(produto + ' '));
+                li.appendChild(btn);
+                lista.appendChild(li);
+                produtosLidos.push(preco);
+              }
+            }
+          })
+          .then(({ data: { text } }) => {
+            const precoRegex = /R?\$?\s?(\d+[\.,]?\d{0,2})/gi;
+            let precos = {};
+            let match;
             while ((match = precoRegex.exec(text)) !== null) {
               let preco = parseFloat(match[1].replace(',', '.'));
               if (!isNaN(preco)) {
