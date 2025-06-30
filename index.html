@@ -1,204 +1,106 @@
-<!-- SmartCart com OCR em tempo real + Firestore -->
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>SmartCart OCR + Firestore</title>
+  <meta charset="UTF-8" />
+  <title>SmartCart OCR Duplo</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 10px;
-    }
-    video, canvas {
-      width: 90%;
-      max-width: 500px;
-      margin: 10px auto;
-      display: block;
-      border-radius: 10px;
-    }
-    #cameraContainer {
-      position: relative;
-      display: inline-block;
-    }
+    body { font-family: sans-serif; text-align: center; }
+    video { width: 90%; max-width: 500px; border-radius: 10px; }
+    #cameraContainer { position: relative; display: inline-block; }
     #retangulo {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 60%;
-      height: 30%;
+      position: absolute; top: 50%; left: 50%;
+      width: 60%; height: 30%;
       transform: translate(-50%, -50%);
-      border: 2px solid red;
-      box-sizing: border-box;
+      border: 2px solid red; border-radius: 10px;
       pointer-events: none;
-      border-radius: 10px;
     }
-    #produtos ul {
-      list-style: none;
-      padding: 0;
-    }
-    #produtos li {
-      margin: 5px 0;
-      padding: 8px;
-      background: #f0f0f0;
-      border-radius: 6px;
-    }
+    li { margin: 5px; padding: 8px; background: #eee; border-radius: 6px; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAfhmfxYmQ0gO3ACrCHeNZx83khMrDUD8U",
-      authDomain: "smartcart-app-dc796.firebaseapp.com",
-      projectId: "smartcart-app-dc796",
-      storageBucket: "smartcart-app-dc796.appspot.com",
-      messagingSenderId: "903830223010",
-      appId: "1:903830223010:web:9241e79644d2039c3e7ffb"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.enviarProdutoParaFirestore = async function(produto, preco) {
-      const dados = {
-        produto,
-        preco: parseFloat(preco),
-        mercado: "Mercado Local",
-        data: new Date(),
-        usuario_id: "scanner01",
-        pontos: 1,
-        validador_ids: ["scanner01"]
-      };
-
-      try {
-        await addDoc(collection(db, "precos_brutos"), dados);
-        console.log("Produto enviado: ", produto);
-      } catch (e) {
-        console.error("Erro ao enviar: ", e);
-      }
-    };
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
 </head>
 <body>
-  <h1>🛒 SmartCart OCR + Firestore</h1>
+  <h1>SmartCart OCR Duplo</h1>
   <div id="cameraContainer">
     <video id="camera" autoplay playsinline></video>
     <div id="retangulo"></div>
   </div>
   <canvas id="canvas" style="display:none;"></canvas>
   <h3>Total: R$ <span id="total">0.00</span></h3>
-  <div id="produtos">
-    <ul id="lista"></ul>
-  </div>
+  <ul id="lista"></ul>
+
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const video = document.getElementById("camera");
-      const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
-      const lista = document.getElementById("lista");
-      const totalDisplay = document.getElementById("total");
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const lista = document.getElementById("lista");
+    const totalDisplay = document.getElementById("total");
 
-      let reconhecendo = false;
-      let produtosLidos = [];
-      let total = 0;
+    let total = 0;
+    let lidos = [];
 
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-        .then(stream => video.srcObject = stream)
-        .catch(err => alert("Erro ao acessar câmera: " + err));
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert("Erro: " + err));
 
-      function carregarOCR() {
-        if (reconhecendo || !video.videoWidth || !video.videoHeight) return;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+    function capturaOCRPrecos() {
+      if (!video.videoWidth) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-        // Coordenadas do retângulo (área central)
-        const rectWidth = canvas.width * 0.6;
-        const rectHeight = canvas.height * 0.3;
-        const rectX = (canvas.width - rectWidth) / 2;
-        const rectY = (canvas.height - rectHeight) / 2;
+      const rw = canvas.width * 0.6;
+      const rh = canvas.height * 0.3;
+      const rx = (canvas.width - rw) / 2;
+      const ry = (canvas.height - rh) / 2;
 
-        ctx.drawImage(video, rectX, rectY, rectWidth, rectHeight, 0, 0, rectWidth, rectHeight);
-        reconhecendo = true;
+      ctx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh);
 
-        Tesseract.recognize(canvas, 'por', { logger: m => console.log(m) })
-          .then(({ data: { text } }) => {
-            const precoRegex = /(?:R\\$|R\\s*\\$)?\\s*(\\d{1,3}(?:[\\.,]\\d{2})?)/gi;
-            let precos = {};
-            let match;
-            while ((match = precoRegex.exec(text)) !== null) {
-              let preco = parseFloat(match[1].replace(',', '.'));
-              if (!isNaN(preco)) {
-                preco = parseFloat(preco.toFixed(2));
-                precos[preco] = (precos[preco] || 0) + 1;
-              }
+      Tesseract.recognize(canvas, 'por', { logger: m => console.log(m) })
+        .then(({ data: { text } }) => {
+          const regex = /(?:R\$|R\s*\$)?\s*(\d{1,3}(?:[\.,]\d{2})?)/gi;
+          let precos = {};
+          let match;
+          while ((match = regex.exec(text)) !== null) {
+            let preco = parseFloat(match[1].replace(',', '.'));
+            if (!isNaN(preco)) {
+              preco = parseFloat(preco.toFixed(2));
+              precos[preco] = (precos[preco] || 0) + 1;
             }
-            const topPrecos = Object.entries(precos)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 3);
-
-            for (const [precoStr, _] of topPrecos) {
-              const preco = parseFloat(precoStr);
-              if (!produtosLidos.includes(preco)) {
-                const produto = "Produto detectado";
-                const li = document.createElement("li");
-                const btn = document.createElement("button");
-                btn.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
-                btn.onclick = () => {
-                  total += preco;
-                  totalDisplay.textContent = total.toFixed(2);
-                  enviarProdutoParaFirestore(produto, preco);
-                  li.remove();
-                };
-                li.appendChild(document.createTextNode(produto + ' '));
-                li.appendChild(btn);
-                lista.appendChild(li);
-                produtosLidos.push(preco);
-              }
+          }
+          const top = Object.entries(precos).sort((a,b)=>b[1]-a[1]).slice(0,3);
+          for (const [str] of top) {
+            const preco = parseFloat(str);
+            if (!lidos.includes(preco)) {
+              const li = document.createElement("li");
+              const btn = document.createElement("button");
+              btn.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
+              btn.onclick = () => {
+                total += preco;
+                totalDisplay.textContent = total.toFixed(2);
+                li.remove();
+              };
+              li.appendChild(document.createTextNode("Produto detectado "));
+              li.appendChild(btn);
+              lista.appendChild(li);
+              lidos.push(preco);
             }
-          })
-          .then(({ data: { text } }) => {
-            const precoRegex = /(?:R\\$|R\\s*\\$)?\\s*(\\d{1,3}(?:[\\.,]\\d{2})?)/gi;
-            let precos = {};
-            let match;
-            while ((match = precoRegex.exec(text)) !== null) {
-              let preco = parseFloat(match[1].replace(',', '.'));
-              if (!isNaN(preco)) {
-                preco = parseFloat(preco.toFixed(2));
-                precos[preco] = (precos[preco] || 0) + 1;
-              }
-            }
-            // Selecionar os 3 preços com maior pontuação
-            const topPrecos = Object.entries(precos)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 3);
+          }
+        });
+    }
 
-            for (const [precoStr, _] of topPrecos) {
-              const preco = parseFloat(precoStr);
-              if (!produtosLidos.includes(preco)) {
-                const produto = "Produto detectado";
-                const li = document.createElement("li");
-                const btn = document.createElement("button");
-                btn.textContent = `Adicionar R$ ${preco.toFixed(2)}`;
-                btn.onclick = () => {
-                  total += preco;
-                  totalDisplay.textContent = total.toFixed(2);
-                  enviarProdutoParaFirestore(produto, preco);
-                  li.remove();
-                };
-                li.appendChild(document.createTextNode(produto + ' '));
-                li.appendChild(btn);
-                lista.appendChild(li);
-                produtosLidos.push(preco);
-              }
-            }
-          })
-          .finally(() => reconhecendo = false);
-      }
+    function capturaTextoProduto() {
+      if (!video.videoWidth) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      Tesseract.recognize(canvas, 'por')
+        .then(({ data: { text } }) => {
+          console.log("Texto detectado:", text);
+        });
+    }
 
-      setInterval(carregarOCR, 2000);
-    });
+    setInterval(capturaOCRPrecos, 2000);  // Preços rápidos
+    setInterval(capturaTextoProduto, 6000);  // Nome do produto mais leve
   </script>
 </body>
 </html>
