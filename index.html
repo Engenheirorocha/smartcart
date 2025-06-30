@@ -1,10 +1,17 @@
 
-<!-- HTML com Firebase + Função de envio, leitura e validação para Firestore -->
+<!-- HTML com Firebase, OCR e envio para Firestore -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>SmartCart Firestore - Envio, Leitura e Validação</title>
+  <title>SmartCart OCR + Firestore</title>
+  <style>
+    video, canvas {
+      display: block;
+      margin: 10px auto;
+      max-width: 90%;
+    }
+  </style>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, updateDoc, doc } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
@@ -104,20 +111,50 @@
       }
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
 </head>
 <body>
-  <h1>Teste SmartCart Firestore</h1>
+  <h1>SmartCart com OCR + Firestore</h1>
 
-  <button onclick="enviarProdutoParaFirestore('leite', '4.59', 'Extra Belford Roxo', 'abc123')">
-    Enviar Produto de Teste
-  </button>
+  <video id="camera" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <button onclick="capturarTexto()">📸 Capturar e Enviar</button>
 
-  <h2>Ranking de Menores Preços (Top 5)</h2>
-  <button onclick="carregarRanking()">Atualizar Ranking</button>
+  <h2>Ranking de Menores Preços</h2>
+  <button onclick="carregarRanking()">🔁 Atualizar</button>
   <ul id="ranking"></ul>
 
-  <h2>Validação de Produtos</h2>
-  <button onclick="carregarValidacoes()">Atualizar Lista de Validações</button>
+  <h2>Validação de Preços</h2>
+  <button onclick="carregarValidacoes()">🔃 Atualizar</button>
   <ul id="validacoes"></ul>
+
+  <script>
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => video.srcObject = stream)
+      .catch(err => alert('Erro ao acessar câmera: ' + err));
+
+    function capturarTexto() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      Tesseract.recognize(canvas, 'por', {
+        logger: m => console.log(m)
+      }).then(({ data: { text } }) => {
+        const precoRegex = /R?\$?\s?(\d+[\.,]?\d{0,2})/gi;
+        const match = precoRegex.exec(text);
+        if (match) {
+          const preco = match[1].replace(',', '.');
+          const produto = "Produto escaneado";
+          enviarProdutoParaFirestore(produto, preco, "Mercado Local", "scanner01");
+        } else {
+          alert("Preço não identificado na imagem");
+        }
+      });
+    }
+  </script>
 </body>
 </html>
