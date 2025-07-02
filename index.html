@@ -1,139 +1,456 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>SmartCart OCR Único</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartCart OCR</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js">
+// Envio ao Firebase após detectar preços
+async function enviarParaFirebase(base64Image, preco) {
+  const local = await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve({ lat: null, lng: null })
+    );
+  });
+
+  const data = {
+    preco: preco,
+    imagem: base64Image,
+    dataHora: new Date().toISOString(),
+    localizacao: local
+  };
+
+  try {
+    await db.collection("leituras").add(data);
+    console.log("✅ Dados enviados ao Firebase:", data);
+  } catch (error) {
+    console.error("❌ Erro ao enviar ao Firebase:", error);
+  }
+}
+
+async function capturarEEnviarImagem(valorDetectado) {
+  try {
+    let canvasTemp = document.createElement('canvas');
+    canvasTemp.width = video.videoWidth;
+    canvasTemp.height = video.videoHeight;
+    let ctx = canvasTemp.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvasTemp.width, canvasTemp.height);
+    const base64Image = canvasTemp.toDataURL('image/jpeg', 0.7);
+    await enviarParaFirebase(base64Image, valorDetectado);
+  } catch (e) {
+    console.error("Erro na captura ou envio da imagem:", e);
+  }
+}
+
+</script>
   <style>
-    body { font-family: sans-serif; text-align: center; }
-    video { width: 90%; max-width: 500px; border-radius: 10px; }
-    #cameraContainer { position: relative; display: inline-block; }
-    #retangulo {
-      position: absolute; top: 50%; left: 50%;
-      width: 60%; height: 30%;
-      transform: translate(-50%, -50%);
-      border: 2px solid red; border-radius: 10px;
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #121212;
+      color: #FFFFFF;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      max-width: 400px;
+      height: auto;
       pointer-events: none;
     }
-    li {
-      margin: 10px auto;
-      padding: 12px;
-      background: #eee;
-      border-radius: 10px;
-      max-width: 90%;
-      font-size: 18px;
+    #precos {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 500px;
+      overflow-y: auto;
     }
-    button {
-      margin: 8px 10px;
-      padding: 12px 20px;
-      font-size: 18px;
+    .preco-btn {
+      font-size: 1.464em;
+      padding: 12.2px 24.4px;
+      background: #4CAF50;
+      color: white;
       border: none;
       border-radius: 8px;
-      background-color: #4CAF50;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: none;
+      transition: transform 0.2s ease;
+    }
+    .preco-btn.pulse {
+      transform: scale(1.1);
+    }
+    .lixeira {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: red;
+      border-radius: 50%;
       color: white;
+      font-size: 0.8em;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-controle {
+      margin-top: 15px;
+    }
+    .btn-controle button {
+      background: #FF5252;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1em;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #45a049;
-    }
-    button.excluir {
-      background-color: #f44336;
-    }
-    button.excluir:hover {
-      background-color: #d32f2f;
+    #total {
+      font-size: 2em;
+      margin-top: 20px;
+      color: #81C784;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+// Envio ao Firebase após detectar preços
+async function enviarParaFirebase(base64Image, preco) {
+  const local = await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve({ lat: null, lng: null })
+    );
+  });
+
+  const data = {
+    preco: preco,
+    imagem: base64Image,
+    dataHora: new Date().toISOString(),
+    localizacao: local
+  };
+
+  try {
+    await db.collection("leituras").add(data);
+    console.log("✅ Dados enviados ao Firebase:", data);
+  } catch (error) {
+    console.error("❌ Erro ao enviar ao Firebase:", error);
+  }
+}
+
+async function capturarEEnviarImagem(valorDetectado) {
+  try {
+    let canvasTemp = document.createElement('canvas');
+    canvasTemp.width = video.videoWidth;
+    canvasTemp.height = video.videoHeight;
+    let ctx = canvasTemp.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvasTemp.width, canvasTemp.height);
+    const base64Image = canvasTemp.toDataURL('image/jpeg', 0.7);
+    await enviarParaFirebase(base64Image, valorDetectado);
+  } catch (e) {
+    console.error("Erro na captura ou envio da imagem:", e);
+  }
+}
+
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js">
+// Envio ao Firebase após detectar preços
+async function enviarParaFirebase(base64Image, preco) {
+  const local = await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve({ lat: null, lng: null })
+    );
+  });
+
+  const data = {
+    preco: preco,
+    imagem: base64Image,
+    dataHora: new Date().toISOString(),
+    localizacao: local
+  };
+
+  try {
+    await db.collection("leituras").add(data);
+    console.log("✅ Dados enviados ao Firebase:", data);
+  } catch (error) {
+    console.error("❌ Erro ao enviar ao Firebase:", error);
+  }
+}
+
+async function capturarEEnviarImagem(valorDetectado) {
+  try {
+    let canvasTemp = document.createElement('canvas');
+    canvasTemp.width = video.videoWidth;
+    canvasTemp.height = video.videoHeight;
+    let ctx = canvasTemp.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvasTemp.width, canvasTemp.height);
+    const base64Image = canvasTemp.toDataURL('image/jpeg', 0.7);
+    await enviarParaFirebase(base64Image, valorDetectado);
+  } catch (e) {
+    console.error("Erro na captura ou envio da imagem:", e);
+  }
+}
+
+</script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
+    authDomain: "smartcart-app-dc796.firebaseapp.com",
+    projectId: "smartcart-app-dc796",
+    storageBucket: "smartcart-app-dc796.appspot.com",
+    messagingSenderId: "903830223010",
+    appId: "1:903830223010:web:9241e79644d2039c3e7ffb"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+// Envio ao Firebase após detectar preços
+async function enviarParaFirebase(base64Image, preco) {
+  const local = await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve({ lat: null, lng: null })
+    );
+  });
+
+  const data = {
+    preco: preco,
+    imagem: base64Image,
+    dataHora: new Date().toISOString(),
+    localizacao: local
+  };
+
+  try {
+    await db.collection("leituras").add(data);
+    console.log("✅ Dados enviados ao Firebase:", data);
+  } catch (error) {
+    console.error("❌ Erro ao enviar ao Firebase:", error);
+  }
+}
+
+async function capturarEEnviarImagem(valorDetectado) {
+  try {
+    let canvasTemp = document.createElement('canvas');
+    canvasTemp.width = video.videoWidth;
+    canvasTemp.height = video.videoHeight;
+    let ctx = canvasTemp.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvasTemp.width, canvasTemp.height);
+    const base64Image = canvasTemp.toDataURL('image/jpeg', 0.7);
+    await enviarParaFirebase(base64Image, valorDetectado);
+  } catch (e) {
+    console.error("Erro na captura ou envio da imagem:", e);
+  }
+}
+
+</script>
+
 </head>
 <body>
-  <h1>SmartCart OCR Único</h1>
-  <div id="cameraContainer">
-    <video id="camera" autoplay playsinline></video>
-    <div id="retangulo"></div>
+  <h1>SmartCart OCR</h1>
+  <div class="container">
+    <div style="position: relative;">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div>
+      <div id="precos"></div>
+      <div class="btn-controle">
+        <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
+        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
+      </div>
+    </div>
   </div>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <h3>Total: R$ <span id="total">0.00</span></h3>
-  <ul id="lista"></ul>
+  <div id="total">Total: R$ <span id="soma">0.00</span></div>
+
+  <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
   <script>
-    const video = document.getElementById("camera");
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    const lista = document.getElementById("lista");
-    const totalDisplay = document.getElementById("total");
-
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const precosDiv = document.getElementById('precos');
+    const somaSpan = document.getElementById('soma');
+    const bip = document.getElementById('bip-audio');
     let total = 0;
-    let lidos = [];
-    let ocrAtivo = true;
+    let canvas = document.createElement('canvas');
+    let isProcessing = false;
+    let ultimoValor = null;
+    let sugestoesFixas = false;
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-      .then(stream => video.srcObject = stream)
-      .catch(err => alert("Erro: " + err));
-
-    function capturaOCRPrecos() {
-      if (!video.videoWidth || !ocrAtivo) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      const rw = canvas.width * 0.6;
-      const rh = canvas.height * 0.3;
-      const rx = (canvas.width - rw) / 2;
-      const ry = (canvas.height - rh) / 2;
-
-      ctx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh);
-
-      ocrAtivo = false;
-
-      Tesseract.recognize(canvas, 'por', { logger: m => console.log(m) })
-        .then(({ data: { text } }) => {
-          const regex = /(?:R\$|R\s*\$)?\s*(\d{1,3}(?:[\.,]\d{2})?)/gi;
-          let precos = {};
-          let match;
-          while ((match = regex.exec(text)) !== null) {
-            let preco = parseFloat(match[1].replace(',', '.'));
-            if (!isNaN(preco)) {
-              preco = parseFloat(preco.toFixed(2));
-              precos[preco] = (precos[preco] || 0) + 1;
-            }
-          }
-          const top = Object.entries(precos).sort((a,b)=>b[1]-a[1]);
-          if (top.length > 0) {
-            const preco = parseFloat(top[0][0]);
-            if (!lidos.includes(preco)) {
-              const li = document.createElement("li");
-              const btnAdd = document.createElement("button");
-              const btnDel = document.createElement("button");
-
-              btnAdd.textContent = `✔️ Adicionar R$ ${preco.toFixed(2)}`;
-              btnAdd.onclick = () => {
-                total += preco;
-                totalDisplay.textContent = total.toFixed(2);
-                lidos.push(preco);
-                li.remove();
-                ocrAtivo = true;
-              };
-
-              btnDel.textContent = "❌ Excluir";
-              btnDel.className = "excluir";
-              btnDel.onclick = () => {
-                li.remove();
-                ocrAtivo = true;
-              };
-
-              li.appendChild(document.createTextNode("Produto detectado "));
-              li.appendChild(btnAdd);
-              li.appendChild(btnDel);
-              lista.appendChild(li);
-            } else {
-              ocrAtivo = true;
-            }
-          } else {
-            ocrAtivo = true;
-          }
-        })
-        .catch(() => ocrAtivo = true);
+    async function iniciarCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: 'environment' } },
+          audio: false
+        });
+        video.srcObject = stream;
+      } catch (err) {
+        alert("Erro ao acessar a câmera: " + err);
+      }
     }
 
-    setInterval(capturaOCRPrecos, 2000);
-  </script>
+    function adicionarPreco(valor, btn) {
+      total += valor;
+      ultimoValor = valor;
+      somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
+      sugestoesFixas = false;
+      bip.play();
+      if (btn) {
+        btn.classList.add('pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 300);
+      }
+    }
+
+    function removerPreco(btn, valor) {
+      total -= valor;
+      if (total < 0) total = 0;
+      somaSpan.innerText = total.toFixed(2);
+      btn.remove();
+    }
+
+    function desfazerUltimo() {
+      if (ultimoValor !== null) {
+        total -= ultimoValor;
+        if (total < 0) total = 0;
+        somaSpan.innerText = total.toFixed(2);
+        ultimoValor = null;
+      }
+    }
+
+    function limparSugestoes() {
+      precosDiv.innerHTML = '';
+      sugestoesFixas = false;
+    }
+
+    function desenharROI() {
+      const ctx = overlay.getContext('2d');
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      const w = overlay.width * 0.5;
+      const h = overlay.height * 0.2;
+      const x = (overlay.width - w) / 2;
+      const y = (overlay.height - h) / 2;
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x, y, w, h);
+    }
+
+    async function capturarImagemEProcessar() {
+      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
+      isProcessing = true;
+      desenharROI();
+
+      const ctx = canvas.getContext('2d');
+      const roiWidth = video.videoWidth * 0.5;
+      const roiHeight = video.videoHeight * 0.2;
+      const roiX = (video.videoWidth - roiWidth) / 2;
+      const roiY = (video.videoHeight - roiHeight) / 2;
+
+      canvas.width = roiWidth;
+      canvas.height = roiHeight;
+      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
+
+      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        let avg = (imageData.data[i] + imageData.data[i + 1] + imageData.data[i + 2]) / 3;
+        let bin = avg > 128 ? 255 : 0;
+        imageData.data[i] = bin;
+        imageData.data[i + 1] = bin;
+        imageData.data[i + 2] = bin;
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+        tessedit_char_whitelist: '0123456789.,',
+        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK
+      });
+
+      const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+      if (matches) {
+        limparSugestoes();
+        matches.slice(0, 3).forEach(str => {
+          const valor = parseFloat(str.replace(',', '.'));
+          if (!isNaN(valor)) {
+            const btn = document.createElement('div');
+            btn.className = 'preco-btn';
+            btn.innerText = `R$ ${valor.toFixed(2)}`;
+            btn.onclick = () => {
+      adicionarPreco(valor, btn);
+      capturarEEnviarImagem(valor);
+    };
+            precosDiv.appendChild(btn);
+          }
+        });
+        sugestoesFixas = true;
+      }
+
+      isProcessing = false;
+    }
+
+    setInterval(capturarImagemEProcessar, 2000);
+    iniciarCamera();
+  
+// Envio ao Firebase após detectar preços
+async function enviarParaFirebase(base64Image, preco) {
+  const local = await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => resolve({ lat: null, lng: null })
+    );
+  });
+
+  const data = {
+    preco: preco,
+    imagem: base64Image,
+    dataHora: new Date().toISOString(),
+    localizacao: local
+  };
+
+  try {
+    await db.collection("leituras").add(data);
+    console.log("✅ Dados enviados ao Firebase:", data);
+  } catch (error) {
+    console.error("❌ Erro ao enviar ao Firebase:", error);
+  }
+}
+
+async function capturarEEnviarImagem(valorDetectado) {
+  try {
+    let canvasTemp = document.createElement('canvas');
+    canvasTemp.width = video.videoWidth;
+    canvasTemp.height = video.videoHeight;
+    let ctx = canvasTemp.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvasTemp.width, canvasTemp.height);
+    const base64Image = canvasTemp.toDataURL('image/jpeg', 0.7);
+    await enviarParaFirebase(base64Image, valorDetectado);
+  } catch (e) {
+    console.error("Erro na captura ou envio da imagem:", e);
+  }
+}
+
+</script>
 </body>
 </html>
