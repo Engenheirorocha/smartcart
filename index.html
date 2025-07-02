@@ -1,204 +1,256 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SMARTCART</title>
+  <title>SmartCart OCR</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
-
     body {
       font-family: 'Poppins', sans-serif;
-      background: #0f172a;
-      color: #f1f5f9;
-      margin: 0;
-      padding: 20px;
       text-align: center;
+      padding: 20px;
+      background: #121212;
+      color: #FFFFFF;
     }
-
-    h1 {
-      font-size: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      color: #22c55e;
-    }
-
     .container {
       display: flex;
-      flex-direction: column;
-      align-items: center;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
       gap: 20px;
     }
-
     video, canvas {
       width: 100%;
       max-width: 400px;
-      border-radius: 12px;
+      border-radius: 10px;
     }
-
     #overlay {
       position: absolute;
       top: 0;
       left: 0;
       pointer-events: none;
     }
-
     #precos {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 300px;
+      max-height: 500px;
       overflow-y: auto;
-      margin-bottom: 10px;
     }
-
     .preco-btn {
-      padding: 10px 20px;
-      background: #10b981;
+      font-size: 1.4em;
+      padding: 12px 24px;
+      background: #4CAF50;
       color: white;
       border: none;
-      border-radius: 10px;
-      font-size: 1.2rem;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .preco-btn:hover {
-      background: #34d399;
-      transform: scale(1.05);
-    }
-
-    #total {
-      font-size: 1.5rem;
-      margin-top: 10px;
-      color: #38bdf8;
-    }
-
-    .btn-controle {
+      position: relative;
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 15px;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
     }
-
+    .preco-btn:hover {
+      background-color: #66bb6a;
+      transform: scale(1.03);
+    }
+    .preco-btn.pulse {
+      transform: scale(1.1);
+    }
     .btn-controle button {
-      padding: 10px 16px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #3b82f6;
-      color: white;
-    }
-
-    .btn-controle button:hover {
-      background: #60a5fa;
-    }
-
-    #manualInput {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      width: 180px;
-      font-size: 1rem;
-    }
-
-    #manualBtn {
-      background: #16a34a;
+      background: #FF5252;
       color: white;
       border: none;
+      padding: 10px 20px;
       border-radius: 8px;
-      padding: 10px 15px;
-      font-size: 1rem;
-      margin-left: 8px;
+      font-size: 1em;
       cursor: pointer;
+      margin: 5px;
     }
-
-    #manualBtn:hover {
-      background: #4ade80;
+    #total {
+      font-size: 2em;
+      margin-top: 20px;
+      color: #81C784;
     }
   </style>
 </head>
 <body>
-  <h1>SMARTCART 🛒</h1>
+  <h1>SmartCart OCR</h1>
   <div class="container">
     <div style="position: relative; max-width: 400px;">
       <video id="video" autoplay playsinline></video>
       <canvas id="overlay"></canvas>
     </div>
-
-    <div id="precos"></div>
-
     <div>
-      <input type="number" id="manualInput" step="0.01" placeholder="Valor manual">
-      <button id="manualBtn" onclick="adicionarManual()">➕ Adicionar</button>
+      <div id="precos"></div>
+      <div style="margin-top: 15px;">
+        <input type="number" id="manualInput" step="0.01" placeholder="Digite o valor (ex: 10.50)" style="padding:10px; border-radius:6px; border:none; width:180px; font-size:1em;">
+        <button onclick="adicionarManual()" style="padding:10px 15px; border:none; background:#2196F3; color:white; border-radius:6px; font-size:1em; margin-left:5px;">➕ Adicionar</button>
+      </div>
+      <div class="btn-controle">
+        <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
+        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
+      </div>
     </div>
-
-    <div class="btn-controle">
-      <button onclick="desfazerUltimo()">↩️ Desfazer Último</button>
-      <button onclick="limparSugestoes()">🧹 Limpar Sugestões</button>
-    </div>
-
-    <div id="total">Total: R$ <span id="soma">0.00</span></div>
   </div>
+  <div id="total">Total: R$ <span id="soma">0.00</span></div>
+
+  <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
+      authDomain: "smartcart-app-dc796.firebaseapp.com",
+      projectId: "smartcart-app-dc796",
+      storageBucket: "smartcart-app-dc796.appspot.com",
+      messagingSenderId: "903830223010",
+      appId: "1:903830223010:web:9241e79644d2039c3e7ffb"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const precosDiv = document.getElementById('precos');
+    const somaSpan = document.getElementById('soma');
+    const bip = document.getElementById('bip-audio');
     let total = 0;
-    let ultimoValor = null;
-    const valoresAnteriores = [];
+    let canvas = document.createElement('canvas');
+    let isProcessing = false;
+    let valoresAdicionados = [];
+    let sugestoesFixas = false;
 
-    function adicionarManual() {
-      const input = document.getElementById("manualInput");
-      const valor = parseFloat(input.value.replace(",", "."));
-      if (!isNaN(valor) && valor > 0) {
-        valoresAnteriores.push(valor);
-        total += valor;
-        document.getElementById("soma").innerText = total.toFixed(2);
-        input.value = "";
-      }
-    }
-
-    function desfazerUltimo() {
-      if (valoresAnteriores.length > 0) {
-        const valor = valoresAnteriores.pop();
-        total -= valor;
-        if (total < 0) total = 0;
-        document.getElementById("soma").innerText = total.toFixed(2);
-      }
-    }
-
-    function limparSugestoes() {
-      document.getElementById("precos").innerHTML = "";
-    }
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
-      .then(stream => {
-        const video = document.getElementById("video");
+    async function iniciarCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
         video.srcObject = stream;
-      });
+        video.onloadedmetadata = () => {
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+        };
+      } catch (err) {
+        alert("Erro ao acessar a câmera: " + err);
+      }
+    }
 
-    const overlay = document.getElementById("overlay");
-    const ctx = overlay.getContext("2d");
-
-    function desenharRetangulo() {
-      overlay.width = 400;
-      overlay.height = 300;
+    function desenharROI() {
+      const ctx = overlay.getContext('2d');
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      const w = 200, h = 60;
+      const w = overlay.width * 0.5;
+      const h = overlay.height * 0.2;
       const x = (overlay.width - w) / 2;
       const y = (overlay.height - h) / 2;
-      ctx.strokeStyle = "#22c55e";
+      ctx.strokeStyle = 'red';
       ctx.lineWidth = 3;
       ctx.strokeRect(x, y, w, h);
     }
 
-    setInterval(desenharRetangulo, 1000);
+    function adicionarPreco(valor, btn) {
+      total += valor;
+      valoresAdicionados.push(valor);
+      somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
+      sugestoesFixas = false;
+      bip.play();
+      if (btn) {
+        btn.classList.add('pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 300);
+      }
+      capturarEEnviarImagem(valor);
+    }
+
+    function adicionarManual() {
+      const input = document.getElementById('manualInput');
+      const valor = parseFloat(input.value.replace(',', '.'));
+      if (isNaN(valor) || valor <= 0) {
+        alert("Digite um valor válido.");
+        return;
+      }
+
+      total += valor;
+      valoresAdicionados.push(valor);
+      somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
+      sugestoesFixas = false;
+      bip.play();
+      input.value = '';
+    }
+
+    function desfazerUltimo() {
+      if (valoresAdicionados.length > 0) {
+        const valor = valoresAdicionados.pop();
+        total -= valor;
+        if (total < 0) total = 0;
+        somaSpan.innerText = total.toFixed(2);
+      }
+    }
+
+    function limparSugestoes() {
+      precosDiv.innerHTML = '';
+      sugestoesFixas = false;
+    }
+
+    async function capturarImagemEProcessar() {
+      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
+      isProcessing = true;
+      desenharROI();
+
+      const ctx = canvas.getContext('2d');
+      const roiWidth = video.videoWidth * 0.5;
+      const roiHeight = video.videoHeight * 0.2;
+      const roiX = (video.videoWidth - roiWidth) / 2;
+      const roiY = (video.videoHeight - roiHeight) / 2;
+      canvas.width = roiWidth;
+      canvas.height = roiHeight;
+      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
+
+      const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+      const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+      if (matches) {
+        limparSugestoes();
+        matches.slice(0, 3).forEach(str => {
+          const valor = parseFloat(str.replace(',', '.'));
+          if (!isNaN(valor)) {
+            const btn = document.createElement('div');
+            btn.className = 'preco-btn';
+            btn.innerText = `R$ ${valor.toFixed(2)}`;
+            btn.onclick = () => adicionarPreco(valor, btn);
+            precosDiv.appendChild(btn);
+          }
+        });
+        sugestoesFixas = true;
+      }
+      isProcessing = false;
+    }
+
+    async function capturarEEnviarImagem(valor) {
+      const snapshotCanvas = document.createElement('canvas');
+      snapshotCanvas.width = video.videoWidth;
+      snapshotCanvas.height = video.videoHeight;
+      snapshotCanvas.getContext('2d').drawImage(video, 0, 0);
+      const imageData = snapshotCanvas.toDataURL('image/jpeg', 0.7);
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        await db.collection("leituras").add({
+          valor: valor,
+          imagem: imageData,
+          datahora: new Date().toISOString(),
+          localizacao: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }
+        });
+      });
+    }
+
+    setInterval(capturarImagemEProcessar, 2000);
+    iniciarCamera();
   </script>
 </body>
 </html>
