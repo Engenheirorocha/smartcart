@@ -1,13 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartCart OCR</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
+      font-family: Arial, sans-serif;
       text-align: center;
       padding: 20px;
       background: #121212;
@@ -20,7 +21,7 @@
       flex-wrap: wrap;
       gap: 20px;
     }
-    video, canvas {
+    video {
       width: 100%;
       max-width: 400px;
       border-radius: 10px;
@@ -46,9 +47,10 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      position: relative;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
     }
     .btn-controle button {
       background: #FF5252;
@@ -70,15 +72,15 @@
 <body>
   <h1>SmartCart OCR</h1>
   <div class="container">
-    <div style="position: relative; max-width: 400px;">
+    <div style="position: relative;">
       <video id="video" autoplay playsinline></video>
       <canvas id="overlay"></canvas>
     </div>
     <div>
       <div id="precos"></div>
       <div style="margin-top: 15px;">
-        <input type="number" id="manualInput" step="0.01" placeholder="Digite o valor (ex: 10.50)" style="padding:10px; border-radius:6px; border:none; width:180px; font-size:1em;">
-        <button onclick="adicionarManual()" style="padding:10px 15px; border:none; background:#2196F3; color:white; border-radius:6px; font-size:1em; margin-left:5px;">➕ Adicionar</button>
+        <input type="number" id="manualInput" placeholder="Digite valor" />
+        <button onclick="adicionarManual()">➕ Adicionar</button>
       </div>
       <div class="btn-controle">
         <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
@@ -93,9 +95,12 @@
     const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
-    let canvas = document.createElement('canvas');
+    const canvas = document.createElement('canvas');
+
     let total = 0;
-    let historico = [];
+    let ultimosValores = [];
+    let isProcessing = false;
+    let sugestoesFixas = false;
 
     async function iniciarCamera() {
       try {
@@ -114,6 +119,8 @@
 
     function desenharROI() {
       const ctx = overlay.getContext('2d');
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
       const w = overlay.width * 0.5;
       const h = overlay.height * 0.2;
@@ -126,7 +133,8 @@
 
     function adicionarPreco(valor) {
       total += valor;
-      historico.push(valor);
+      ultimosValores.push(valor);
+      if (ultimosValores.length > 10) ultimosValores.shift();
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
     }
@@ -134,47 +142,43 @@
     function adicionarManual() {
       const input = document.getElementById('manualInput');
       const valor = parseFloat(input.value.replace(',', '.'));
-      if (isNaN(valor) || valor <= 0) {
-        alert("Digite um valor válido.");
-        return;
-      }
-      adicionarPreco(valor);
-      input.value = '';
-    }
-
-    function desfazerUltimo() {
-      if (historico.length > 0) {
-        const valor = historico.pop();
-        total -= valor;
-        if (total < 0) total = 0;
-        somaSpan.innerText = total.toFixed(2);
+      if (!isNaN(valor) && valor > 0) {
+        adicionarPreco(valor);
+        input.value = '';
       }
     }
 
     function limparSugestoes() {
       precosDiv.innerHTML = '';
+      sugestoesFixas = false;
+    }
+
+    function desfazerUltimo() {
+      if (ultimosValores.length > 0) {
+        const removido = ultimosValores.pop();
+        total -= removido;
+        somaSpan.innerText = total.toFixed(2);
+      }
     }
 
     async function capturarImagemEProcessar() {
+      if (isProcessing || sugestoesFixas || video.videoWidth === 0) return;
+      isProcessing = true;
       desenharROI();
-      if (video.videoWidth === 0) return;
 
       const ctx = canvas.getContext('2d');
-      const roiWidth = video.videoWidth * 0.5;
-      const roiHeight = video.videoHeight * 0.2;
-      const roiX = (video.videoWidth - roiWidth) / 2;
-      const roiY = (video.videoHeight - roiHeight) / 2;
+      const roiW = video.videoWidth * 0.5;
+      const roiH = video.videoHeight * 0.2;
+      const roiX = (video.videoWidth - roiW) / 2;
+      const roiY = (video.videoHeight - roiH) / 2;
 
-      canvas.width = roiWidth;
-      canvas.height = roiHeight;
-      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
+      canvas.width = roiW;
+      canvas.height = roiH;
+      ctx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
 
-      const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
-        tessedit_char_whitelist: '0123456789.,',
-        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK
-      });
-
+      const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
       const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+
       if (matches) {
         limparSugestoes();
         matches.slice(0, 3).forEach(str => {
@@ -183,14 +187,14 @@
             const btn = document.createElement('div');
             btn.className = 'preco-btn';
             btn.innerText = `R$ ${valor.toFixed(2)}`;
-            btn.onclick = () => {
-              adicionarPreco(valor);
-              btn.remove();
-            };
+            btn.onclick = () => adicionarPreco(valor);
             precosDiv.appendChild(btn);
           }
         });
+        sugestoesFixas = true;
       }
+
+      isProcessing = false;
     }
 
     setInterval(capturarImagemEProcessar, 2000);
