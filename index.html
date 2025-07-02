@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -11,16 +10,15 @@
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      text-align: center;
-      padding: 20px;
       background: #121212;
       color: #FFFFFF;
+      text-align: center;
+      padding: 20px;
     }
     .container {
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 20px;
     }
     video, canvas {
@@ -49,18 +47,11 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       transition: transform 0.2s ease;
     }
     .preco-btn:hover {
       background-color: #66bb6a;
       transform: scale(1.03);
-    }
-    .preco-btn.pulse {
-      transform: scale(1.1);
     }
     .btn-controle button {
       background: #FF5252;
@@ -94,7 +85,7 @@
       </div>
       <div class="btn-controle">
         <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
-        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
+        <button onclick="desfazerUltimos()">↩️ Desfazer últimos</button>
       </div>
     </div>
   </div>
@@ -121,20 +112,15 @@
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
-    let ultimoValor = null;
-    let sugestoesFixas = false;
+    let historico = [];
 
     async function iniciarCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          overlay.width = video.videoWidth;
-          overlay.height = video.videoHeight;
-        };
-      } catch (err) {
-        alert("Erro ao acessar a câmera: " + err);
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+      };
     }
 
     function desenharROI() {
@@ -151,6 +137,13 @@
       ctx.strokeRect(x, y, w, h);
     }
 
+    function adicionarPreco(valor) {
+      total += valor;
+      historico.push(valor);
+      somaSpan.innerText = total.toFixed(2);
+      bip.play();
+    }
+
     function adicionarManual() {
       const input = document.getElementById('manualInput');
       const valor = parseFloat(input.value.replace(',', '.'));
@@ -158,93 +151,55 @@
         alert("Digite um valor válido.");
         return;
       }
-      total += valor;
-      ultimoValor = valor;
-      somaSpan.innerText = total.toFixed(2);
-      bip.play();
+      adicionarPreco(valor);
       input.value = '';
     }
 
-    function adicionarPreco(valor, btn) {
-      total += valor;
-      ultimoValor = valor;
-      somaSpan.innerText = total.toFixed(2);
-      limparSugestoes();
-      sugestoesFixas = false;
-      bip.play();
-      if (btn) {
-        btn.classList.add('pulse');
-        setTimeout(() => btn.classList.remove('pulse'), 300);
+    function desfazerUltimos() {
+      for (let i = 0; i < 10 && historico.length > 0; i++) {
+        const valor = historico.pop();
+        total -= valor;
       }
-    }
-
-    function removerPreco(btn, valor) {
-      total -= valor;
       if (total < 0) total = 0;
       somaSpan.innerText = total.toFixed(2);
-      btn.remove();
     }
 
-    function desfazerUltimo() {
-      if (ultimoValor !== null) {
-        total -= ultimoValor;
-        if (total < 0) total = 0;
-        somaSpan.innerText = total.toFixed(2);
-        ultimoValor = null;
-      }
-    }
-
-    function limparSugestoes() {
-      precosDiv.innerHTML = '';
-      sugestoesFixas = false;
-    }
-
-    async function capturarImagemEProcessar() {
-      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
+    setInterval(() => {
+      if (isProcessing || video.videoWidth === 0) return;
       isProcessing = true;
       desenharROI();
-
       const ctx = canvas.getContext('2d');
-      const roiWidth = video.videoWidth * 0.5;
-      const roiHeight = video.videoHeight * 0.2;
-      const roiX = (video.videoWidth - roiWidth) / 2;
-      const roiY = (video.videoHeight - roiHeight) / 2;
-      canvas.width = roiWidth;
-      canvas.height = roiHeight;
-      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
+      const roiW = video.videoWidth * 0.5;
+      const roiH = video.videoHeight * 0.2;
+      const roiX = (video.videoWidth - roiW) / 2;
+      const roiY = (video.videoHeight - roiH) / 2;
+      canvas.width = roiW;
+      canvas.height = roiH;
+      ctx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        let avg = (imageData.data[i] + imageData.data[i+1] + imageData.data[i+2]) / 3;
-        let bin = avg > 128 ? 255 : 0;
-        imageData.data[i] = imageData.data[i+1] = imageData.data[i+2] = bin;
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const avg = (imgData.data[i] + imgData.data[i+1] + imgData.data[i+2]) / 3;
+        const bin = avg > 128 ? 255 : 0;
+        imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = bin;
       }
-      ctx.putImageData(imageData, 0, 0);
+      ctx.putImageData(imgData, 0, 0);
 
-      const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+      Tesseract.recognize(canvas, 'eng', {
         tessedit_char_whitelist: '0123456789.,',
         tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK
+      }).then(({ data: { text } }) => {
+        const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+        if (matches) {
+          matches.slice(0, 1).forEach(str => {
+            const valor = parseFloat(str.replace(',', '.'));
+            if (!isNaN(valor)) adicionarPreco(valor);
+          });
+        }
+        isProcessing = false;
       });
+    }, 2000);
 
-      const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
-      if (matches) {
-        limparSugestoes();
-        matches.slice(0, 3).forEach(str => {
-          const valor = parseFloat(str.replace(',', '.'));
-          if (!isNaN(valor)) {
-            const btn = document.createElement('div');
-            btn.className = 'preco-btn';
-            btn.innerText = `R$ ${valor.toFixed(2)}`;
-            btn.onclick = () => adicionarPreco(valor, btn);
-            precosDiv.appendChild(btn);
-          }
-        });
-        sugestoesFixas = true;
-      }
-      isProcessing = false;
-    }
-
-    setInterval(capturarImagemEProcessar, 2000);
     iniciarCamera();
   </script>
 </body>
