@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SmartCart OCR</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -10,15 +10,16 @@
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      background: #121212;
-      color: #FFFFFF;
       text-align: center;
       padding: 20px;
+      background: #121212;
+      color: #FFFFFF;
     }
     .container {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
       gap: 20px;
     }
     video, canvas {
@@ -47,11 +48,18 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: transform 0.2s ease;
     }
     .preco-btn:hover {
       background-color: #66bb6a;
       transform: scale(1.03);
+    }
+    .preco-btn.pulse {
+      transform: scale(1.1);
     }
     .btn-controle button {
       background: #FF5252;
@@ -90,6 +98,7 @@
     </div>
   </div>
   <div id="total">Total: R$ <span id="soma">0.00</span></div>
+
   <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
   <script>
@@ -112,15 +121,20 @@
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
-    let historico = [];
+    let sugestoesFixas = false;
+    let historicoValores = [];
 
     async function iniciarCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
-      video.srcObject = stream;
-      video.onloadedmetadata = () => {
-        overlay.width = video.videoWidth;
-        overlay.height = video.videoHeight;
-      };
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+          overlay.width = video.videoWidth;
+          overlay.height = video.videoHeight;
+        };
+      } catch (err) {
+        alert("Erro ao acessar a câmera: " + err);
+      }
     }
 
     function desenharROI() {
@@ -137,11 +151,18 @@
       ctx.strokeRect(x, y, w, h);
     }
 
-    function adicionarPreco(valor) {
+    function adicionarPreco(valor, btn) {
       total += valor;
-      historico.push(valor);
+      historicoValores.push(valor);
       somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
+      sugestoesFixas = false;
       bip.play();
+      if (btn) {
+        btn.classList.add('pulse');
+        setTimeout(() => btn.classList.remove('pulse'), 300);
+      }
+      capturarEEnviarImagem(valor);
     }
 
     function adicionarManual() {
@@ -151,55 +172,87 @@
         alert("Digite um valor válido.");
         return;
       }
-      adicionarPreco(valor);
+      total += valor;
+      historicoValores.push(valor);
+      somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
+      sugestoesFixas = false;
+      bip.play();
       input.value = '';
     }
 
     function desfazerUltimos() {
-      for (let i = 0; i < 10 && historico.length > 0; i++) {
-        const valor = historico.pop();
-        total -= valor;
+      let qtd = Math.min(10, historicoValores.length);
+      for (let i = 0; i < qtd; i++) {
+        total -= historicoValores.pop();
       }
       if (total < 0) total = 0;
       somaSpan.innerText = total.toFixed(2);
     }
 
-    setInterval(() => {
-      if (isProcessing || video.videoWidth === 0) return;
+    function limparSugestoes() {
+      precosDiv.innerHTML = '';
+      sugestoesFixas = false;
+    }
+
+    async function capturarImagemEProcessar() {
+      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
       isProcessing = true;
       desenharROI();
+
       const ctx = canvas.getContext('2d');
-      const roiW = video.videoWidth * 0.5;
-      const roiH = video.videoHeight * 0.2;
-      const roiX = (video.videoWidth - roiW) / 2;
-      const roiY = (video.videoHeight - roiH) / 2;
-      canvas.width = roiW;
-      canvas.height = roiH;
-      ctx.drawImage(video, roiX, roiY, roiW, roiH, 0, 0, roiW, roiH);
+      const roiWidth = video.videoWidth * 0.5;
+      const roiHeight = video.videoHeight * 0.2;
+      const roiX = (video.videoWidth - roiWidth) / 2;
+      const roiY = (video.videoHeight - roiHeight) / 2;
+      canvas.width = roiWidth;
+      canvas.height = roiHeight;
+      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
 
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < imgData.data.length; i += 4) {
-        const avg = (imgData.data[i] + imgData.data[i+1] + imgData.data[i+2]) / 3;
-        const bin = avg > 128 ? 255 : 0;
-        imgData.data[i] = imgData.data[i+1] = imgData.data[i+2] = bin;
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      Tesseract.recognize(canvas, 'eng', {
+      const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
         tessedit_char_whitelist: '0123456789.,',
         tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK
-      }).then(({ data: { text } }) => {
-        const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
-        if (matches) {
-          matches.slice(0, 1).forEach(str => {
-            const valor = parseFloat(str.replace(',', '.'));
-            if (!isNaN(valor)) adicionarPreco(valor);
-          });
-        }
-        isProcessing = false;
       });
-    }, 2000);
 
+      const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+      if (matches) {
+        limparSugestoes();
+        matches.slice(0, 3).forEach(str => {
+          const valor = parseFloat(str.replace(',', '.'));
+          if (!isNaN(valor)) {
+            const btn = document.createElement('div');
+            btn.className = 'preco-btn';
+            btn.innerText = `R$ ${valor.toFixed(2)}`;
+            btn.onclick = () => adicionarPreco(valor, btn);
+            precosDiv.appendChild(btn);
+          }
+        });
+        sugestoesFixas = true;
+      }
+      isProcessing = false;
+    }
+
+    async function capturarEEnviarImagem(valor) {
+      const snapshotCanvas = document.createElement('canvas');
+      snapshotCanvas.width = video.videoWidth;
+      snapshotCanvas.height = video.videoHeight;
+      snapshotCanvas.getContext('2d').drawImage(video, 0, 0);
+      const imageData = snapshotCanvas.toDataURL('image/jpeg', 0.7);
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        await db.collection("leituras").add({
+          valor: valor,
+          imagem: imageData,
+          datahora: new Date().toISOString(),
+          localizacao: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }
+        });
+      });
+    }
+
+    setInterval(capturarImagemEProcessar, 2000);
     iniciarCamera();
   </script>
 </body>
