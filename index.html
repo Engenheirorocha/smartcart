@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SmartCart A3 – OCR + Somatório (Hotfix Câmera)</title>
+  <title>SmartCart A3 – câmera traseira (v1.2)</title>
   <style>
     :root{ --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#2b90d9; --ok:#3ccf91; --warn:#f4d35e; --err:#ff6b6b; }
     *{box-sizing:border-box}
@@ -16,21 +16,20 @@
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .stack{display:flex;flex-direction:column;gap:10px}
     .muted{color:var(--muted)}
-    .btn,.input,select{border:1px solid #2a2f3a;border-radius:12px;background:#0f131a;color:var(--text);padding:10px 12px}
+    .btn,.input{border:1px solid #2a2f3a;border-radius:12px;background:#0f131a;color:var(--text);padding:10px 12px}
     .btn{cursor:pointer}
     .btn.primary{background:#172031;border-color:var(--accent)}
-    .btn.ghost{background:transparent}
     .btn.ok{background:#0f1c18;border-color:#1b6f52}
     .btn.warn{background:#211f11;border-color:#5e5321}
     .btn.err{background:#231313;border-color:#5b2020}
-    .pill{font-size:12px;padding:2px 8px;border:1px solid #2a2f3a;border-radius:999px;color:#b5ffc8}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
     /* Video + overlay */
     .videoWrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid #2a2f3a;aspect-ratio:16/9;background:#0b0e13;min-height:280px}
     video{width:100%;height:100%;object-fit:cover;background:#000}
     .roi{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-    .box{width:min(70%,720px);height:min(45%,360px);outline:2px dashed rgba(97,218,251,.85);outline-offset:-2px;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.35) inset}
+    /* ROI menor e específica para etiquetas: ~55% largura x 22% altura */
+    .box{width:min(55%,560px);height:min(22%,180px);outline:2px dashed rgba(97,218,251,.9);outline-offset:-2px;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.42) inset}
     .hud{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap}
     .hud .tag{background:#0f131a;border:1px solid #2a2f3a;border-radius:10px;padding:6px 8px;font-size:12px;color:#c9d3e1}
 
@@ -53,7 +52,7 @@
 <body>
   <header>
     <div class="wrap">
-      <h1>SmartCart A3 – OCR contínuo + Somatório (hotfix câmera)</h1>
+      <h1>SmartCart A3 – câmera traseira (v1.2)</h1>
     </div>
   </header>
 
@@ -62,14 +61,8 @@
       <div class="card stack">
         <div class="row">
           <button id="btnStart" class="btn primary">Iniciar Câmera</button>
-          <button id="btnToggle" class="btn">Pausar OCR</button>
-          <button id="btnClear" class="btn ghost">Limpar Lista</button>
+          <button id="btnClear" class="btn warn">Limpar Lista</button>
           <span id="status" class="muted">Pronto</span>
-        </div>
-        <div class="row">
-          <select id="deviceSelect" title="Escolher câmera"></select>
-          <span class="pill" id="secureTag">—</span>
-          <span class="pill" id="permTag">Permissão: —</span>
         </div>
         <div class="videoWrap" id="videoWrap">
           <video id="video" playsinline muted></video>
@@ -82,7 +75,7 @@
             </div>
           </div>
         </div>
-        <div class="muted">Dica: página <strong>precisa ser HTTPS</strong> (ou localhost) e o navegador deve permitir câmera. Se a câmera não ligar, verifique permissões nas configurações do site.</div>
+        <div class="muted">Dica: mantenha a etiqueta <strong>inteira</strong> dentro do retângulo. Página precisa ser <strong>HTTPS</strong> (ou localhost) e permitir câmera.</div>
       </div>
 
       <div class="card">
@@ -109,82 +102,116 @@
 
   <script src="https://unpkg.com/tesseract.js@5.0.2/dist/tesseract.min.js"></script>
   <script>
-    // ===== UI helpers =====
     const $ = s => document.querySelector(s);
     const fmtBRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
     function showToast(msg, kind='ok'){ const el=$('#toast'); el.textContent=msg; el.className='toast '+kind; el.style.display='inline-block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>el.style.display='none',2200); }
 
-    // ===== Ambiente & permissões =====
-    const secureTag = $('#secureTag');
-    const permTag = $('#permTag');
-    secureTag.textContent = (location.protocol === 'https:' || location.hostname === 'localhost') ? 'Seguro: OK' : 'Inseguro: use HTTPS';
-
-    async function readCameraPermission(){
-      if(!navigator.permissions) { permTag.textContent = 'Permissão: (API indisponível)'; return; }
-      try{ const p = await navigator.permissions.query({ name:'camera' }); permTag.textContent = 'Permissão: '+ p.state; p.onchange = ()=> permTag.textContent = 'Permissão: '+ p.state; }catch{ permTag.textContent = 'Permissão: —'; }
-    }
-    readCameraPermission();
-
-    // ===== Somatório =====
+    // ===== Somatório / estado =====
     const PRICE_REGEX = /(?:R\$\s*)?(\d{1,4}(?:[.,]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
-    const state = { running:false, stream:null, items:[], undoStack:[], total:0, detections:new Map() };
+    const state = { running:false, stream:null, items:[], undoStack:[], total:0, detections:new Map(), lastAdded:{value:null, at:0} };
     function parsePrice(str){ if(!str) return NaN; str=String(str).replace(/[^\d.,]/g,'').trim(); if(!str) return NaN; if(str.includes('.') && str.includes(',')) str=str.replace(/\./g,'').replace(',', '.'); else if(str.includes(',')) str=str.replace(',', '.'); const v=Number(str); return isFinite(v)?v:NaN; }
     function renderList(){ $('#totalLabel').textContent = fmtBRL.format(Math.max(0,state.total)); const list=$('#list'); list.innerHTML=''; for(const it of state.items.slice().reverse()){ const row=document.createElement('div'); row.className='item'; row.innerHTML=`<div><strong>${fmtBRL.format(it.value)}</strong><br><small>${it.source}</small></div><button class="btn err" data-id="${it.id}">x</button>`; row.querySelector('button').onclick=()=>{ const i=state.items.findIndex(o=>o.id===it.id); if(i>=0){ state.total -= state.items[i].value; state.items.splice(i,1); renderList(); } }; list.appendChild(row);} }
-    function addItem(value, source='OCR'){ const now=Date.now(); const item={ id:now, value, source }; state.items.push(item); state.undoStack.push(item); if(state.undoStack.length>10) state.undoStack.shift(); state.total += value; renderList(); showToast(`${source==='OCR'?'Detectado':'Adicionado'}: ${fmtBRL.format(value)}`,'ok'); }
+    function addItem(value, source='OCR'){ const now=Date.now(); if(state.lastAdded.value===value && (now-state.lastAdded.at)<8000){ $('#lastTag').textContent=`Último: repetido ${fmtBRL.format(value)}`; return; } const item={ id:now, value, source }; state.items.push(item); state.undoStack.push(item); if(state.undoStack.length>10) state.undoStack.shift(); state.total += value; state.lastAdded={ value, at: now }; renderList(); showToast(`${source==='OCR'?'Detectado':'Adicionado'}: ${fmtBRL.format(value)}`,'ok'); }
     function undoLast(){ const last=state.undoStack.pop(); if(!last){ showToast('Nada para desfazer','warn'); return; } const i=state.items.findIndex(it=>it.id===last.id); if(i>=0){ state.total -= state.items[i].value; state.items.splice(i,1); renderList(); showToast(`Removido: ${fmtBRL.format(last.value)}`,'warn'); } }
     function clearList(){ state.items=[]; state.undoStack=[]; state.total=0; renderList(); showToast('Lista limpa','warn'); }
 
-    // ===== Câmera =====
-    const deviceSelect = $('#deviceSelect');
+    // ===== Câmera: sempre traseira =====
     const video = $('#video');
     const statusEl = $('#status');
-    async function listDevices(){ if(!navigator.mediaDevices?.enumerateDevices) return; const devices = await navigator.mediaDevices.enumerateDevices(); deviceSelect.innerHTML=''; devices.filter(d=>d.kind==='videoinput').forEach(d=>{ const opt=document.createElement('option'); opt.value=d.deviceId; opt.textContent=d.label||('Câmera '+(deviceSelect.length+1)); deviceSelect.appendChild(opt); }); if(!deviceSelect.value && deviceSelect.options.length){ deviceSelect.selectedIndex = deviceSelect.options.length-1; } }
-
     async function startCamera(){
       if(!navigator.mediaDevices?.getUserMedia){ statusEl.textContent='Seu navegador não suporta câmera (getUserMedia)'; showToast('getUserMedia indisponível','err'); return; }
       try{
         if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
-        const preferDevice = deviceSelect.value;
-        const constraints = preferDevice ? { video:{ deviceId:{ exact: preferDevice } }, audio:false } : { video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 }, advanced:[{facingMode:'environment'}] }, audio:false };
+        const constraints = {
+          video: {
+            facingMode: { exact: 'environment' }, // força traseira
+            width: { ideal: 1280 }, height: { ideal: 720 },
+            advanced: [{ facingMode: 'environment' }]
+          },
+          audio: false
+        };
         statusEl.textContent='Solicitando câmera…';
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints).catch(async (e)=>{
+          // fallback se "exact" falhar em alguns aparelhos
+          if(e && e.name==='OverconstrainedError'){
+            return await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
+          }
+          throw e;
+        });
         state.stream = stream; video.srcObject = stream; await video.play();
-        statusEl.textContent='Câmera ligada';
-        await listDevices();
+        statusEl.textContent='Câmera traseira ligada';
       } catch(e){
         console.error('Camera error', e);
-        let msg = 'Erro ao abrir câmera';
-        if(e.name==='NotAllowedError') msg = 'Permissão negada. Libere a câmera nas configurações do site.';
-        else if(e.name==='NotFoundError') msg = 'Nenhuma câmera encontrada. Tente escolher outro dispositivo.';
-        else if(e.name==='NotReadableError') msg = 'Câmera ocupada por outro app.';
-        else if(e.message && e.message.includes('Only secure origins')) msg = 'Precisa usar HTTPS (ou localhost).';
-        statusEl.textContent = msg; showToast(msg,'err');
+        let msg='Erro ao abrir câmera';
+        if(e.name==='NotAllowedError') msg='Permissão negada. Libere a câmera nas configurações do site.';
+        else if(e.name==='NotFoundError') msg='Nenhuma câmera traseira encontrada.';
+        else if(e.name==='NotReadableError') msg='Câmera ocupada por outro app.';
+        else if(e.message && e.message.includes('Only secure origins')) msg='Precisa usar HTTPS (ou localhost).';
+        statusEl.textContent=msg; showToast(msg,'err');
       }
     }
 
-    // ===== OCR =====
+    // ===== OCR contínuo (sem botão de pausar) =====
     const fpsTag = $('#fpsTag'), lastTag=$('#lastTag'), confTag=$('#confTag');
     let worker, loopId=null, lastTick=0, ocrCountWindow=0, lastFPSUpdate=0;
-    async function initTesseract(){ if(worker) return worker; worker = await Tesseract.createWorker({ logger:m=>{/* console.log(m) */} }); await worker.loadLanguage('eng'); await worker.initialize('eng'); await worker.setParameters({ tessedit_char_whitelist:'0123456789R$.,-' }); return worker; }
+    async function initTesseract(){ if(worker) return worker; worker = await Tesseract.createWorker({ logger:m=>{} }); await worker.loadLanguage('eng'); await worker.initialize('eng'); await worker.setParameters({ tessedit_char_whitelist:'0123456789R$.,-' }); return worker; }
 
-    function getRoiCanvas(){ const vw=video.videoWidth||video.clientWidth; const vh=video.videoHeight||video.clientHeight; if(!vw||!vh) return null; const rw=Math.round(vw*0.70), rh=Math.round(vh*0.45), rx=Math.round((vw-rw)/2), ry=Math.round((vh-rh)/2); const scale=0.6, cw=Math.max(1,Math.round(rw*scale)), ch=Math.max(1,Math.round(rh*scale)); const c=getRoiCanvas._c||document.createElement('canvas'); const ctx=c.getContext('2d',{ willReadFrequently:true }); c.width=cw; c.height=ch; ctx.drawImage(video, rx, ry, rw, rh, 0, 0, cw, ch); return c; }
+    function getRoiCanvas(){
+      const vw=video.videoWidth||video.clientWidth; const vh=video.videoHeight||video.clientHeight; if(!vw||!vh) return null;
+      // ROI agora usa 55% x 22% do frame (mesmo da .box)
+      const rw=Math.round(vw*0.55), rh=Math.round(vh*0.22);
+      const rx=Math.round((vw-rw)/2), ry=Math.round((vh-rh)/2);
+      const scale=0.72; // ligeiramente maior que antes para melhorar legibilidade
+      const cw=Math.max(1,Math.round(rw*scale)), ch=Math.max(1,Math.round(rh*scale));
+      const c=getRoiCanvas._c||document.createElement('canvas'); const ctx=c.getContext('2d',{ willReadFrequently:true });
+      c.width=cw; c.height=ch; ctx.drawImage(video, rx, ry, rw, rh, 0, 0, cw, ch);
+      return c;
+    }
 
-    function registerDetection(value){ const now=Date.now(); const key=value.toFixed(2); const rec=state.detections.get(key)||{count:0,last:0}; rec.count++; rec.last=now; state.detections.set(key,rec); for(const [k,r] of state.detections) if(now-r.last>3000) state.detections.delete(k); if(rec.count>=2){ state.detections.clear(); addItem(value, 'OCR'); } }
+    function registerDetection(value){
+      const now=Date.now(); const key=value.toFixed(2);
+      const rec=state.detections.get(key)||{count:0,last:0}; rec.count++; rec.last=now; state.detections.set(key,rec);
+      for(const [k,r] of state.detections) if(now-r.last>2500) state.detections.delete(k);
+      if(rec.count>=2){ state.detections.clear(); addItem(value,'OCR'); }
+    }
 
-    async function ocrLoop(){ if(!state.running) return; const now=performance.now(); if(now-lastTick<700){ loopId=requestAnimationFrame(ocrLoop); return; } lastTick=now; try{ const canvas=getRoiCanvas(); if(canvas){ const { data } = await worker.recognize(canvas); ocrCountWindow++; const text=(data.text||'').replace(/\s+/g,' '); confTag.textContent='Conf: '+(data.confidence?Math.round(data.confidence):'—'); const found=new Set(); let m; while((m=PRICE_REGEX.exec(text))!==null){ const raw=m[1]; const val=parsePrice(raw); if(isFinite(val)&&val>=0.1&&val<=10000){ found.add(Number(val.toFixed(2))); } } lastTag.textContent='Último: '+(found.size? fmtBRL.format([...found][0]) : '—'); if(found.size){ const val=Math.min(...found); registerDetection(val); } } } catch(e){ console.warn('OCR erro:', e); } finally{ const t=performance.now(); if(t-lastFPSUpdate>1000){ fpsTag.textContent='OCR: '+ocrCountWindow+'/s'; ocrCountWindow=0; lastFPSUpdate=t; } loopId=requestAnimationFrame(ocrLoop); } }
+    async function ocrLoop(){
+      if(!state.running) return;
+      const now=performance.now(); if(now-lastTick<650){ loopId=requestAnimationFrame(ocrLoop); return; } lastTick=now;
+      try{
+        const canvas=getRoiCanvas();
+        if(canvas){
+          const { data } = await worker.recognize(canvas);
+          ocrCountWindow++;
+          const text=(data.text||'').replace(/\s+/g,' ');
+          confTag.textContent='Conf: '+(data.confidence?Math.round(data.confidence):'—');
+          const found=new Set(); let m;
+          while((m=PRICE_REGEX.exec(text))!==null){
+            const raw=m[1]; const val=parsePrice(raw);
+            if(isFinite(val)&&val>=0.1&&val<=10000){ found.add(Number(val.toFixed(2))); }
+          }
+          lastTag.textContent='Último: '+(found.size? fmtBRL.format([...found][0]) : '—');
+          if(found.size){ const val=Math.min(...found); registerDetection(val); }
+        }
+      }catch(e){ console.warn('OCR erro:', e); }
+      finally{
+        const t=performance.now(); if(t-lastFPSUpdate>1000){ fpsTag.textContent='OCR: '+ocrCountWindow+'/s'; ocrCountWindow=0; lastFPSUpdate=t; }
+        loopId=requestAnimationFrame(ocrLoop);
+      }
+    }
 
     // ===== Controles =====
-    $('#btnStart').addEventListener('click', async ()=>{ await startCamera(); await initTesseract(); if(!state.running){ state.running=true; $('#btnToggle').textContent='Pausar OCR'; ocrLoop(); showToast('OCR iniciado'); } });
-    $('#btnToggle').addEventListener('click', ()=>{ if(!worker){ showToast('Inicie a câmera primeiro','warn'); return; } state.running=!state.running; $('#btnToggle').textContent= state.running? 'Pausar OCR':'Retomar OCR'; if(state.running){ ocrLoop(); showToast('OCR retomado'); } else { if(loopId) cancelAnimationFrame(loopId); showToast('OCR pausado','warn'); } });
+    $('#btnStart').addEventListener('click', async ()=>{
+      await startCamera();
+      await initTesseract();
+      if(!state.running){ state.running=true; ocrLoop(); showToast('OCR iniciado'); }
+    });
     $('#btnAddManual').addEventListener('click', ()=>{ const v=parsePrice($('#manualInput').value.trim()); if(!isFinite(v)){ showToast('Valor inválido','err'); return; } addItem(v,'Manual'); $('#manualInput').value=''; });
     $('#btnUndo').addEventListener('click', undoLast);
     $('#btnClear').addEventListener('click', clearList);
 
-    // Atualiza lista de câmeras quando disponível
-    if(navigator.mediaDevices?.enumerateDevices){ navigator.mediaDevices.addEventListener?.('devicechange', listDevices); listDevices(); }
-
-    // Evita vazamento
     window.addEventListener('beforeunload', ()=>{ if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); } });
   </script>
 </body>
 </html>
+
