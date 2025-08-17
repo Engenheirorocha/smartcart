@@ -3,325 +3,188 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SmartCart A3 – com Chat por Bairro</title>
+  <title>SmartCart A3 – OCR + Somatório (Hotfix Câmera)</title>
   <style>
-    :root { --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#61dafb; }
+    :root{ --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#2b90d9; --ok:#3ccf91; --warn:#f4d35e; --err:#ff6b6b; }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font:500 15px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
-    header{position:sticky;top:0;background:#0f1115cc;backdrop-filter:saturate(140%) blur(6px);border-bottom:1px solid #222}
-    .wrap{max-width:980px;margin:0 auto;padding:16px}
-    h1{font-size:20px;margin:0 0 4px}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab{padding:8px 12px;border:1px solid #2a2f3a;border-radius:12px;background:var(--card);cursor:pointer}
-    .tab.active{outline:2px solid #2b90d9}
-    main{max-width:980px;margin:10px auto;padding:10px}
-    section{display:none}
-    section.active{display:block}
-
-    /* ===== CHAT UI ===== */
-    .card{background:var(--card);border:1px solid #2a2f3a;border-radius:16px;padding:12px}
-    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    body{margin:0;background:var(--bg);color:var(--text);font:500 15px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    header{position:sticky;top:0;z-index:3;background:#0f1115cc;border-bottom:1px solid #20242e;backdrop-filter:blur(6px)}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
+    h1{font-size:18px;margin:0}
+    main{max-width:1100px;margin:14px auto;padding:0 10px;display:grid;grid-template-columns:1.6fr 1fr;gap:12px}
+    .card{background:var(--card);border:1px solid #222b36;border-radius:16px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .stack{display:flex;flex-direction:column;gap:10px}
-    .input, select, button{background:#0f131a;color:var(--text);border:1px solid #2a2f3a;border-radius:12px;padding:10px 12px}
-    .input::placeholder{color:#657187}
-    button{cursor:pointer}
-    button.primary{background:#1a2634;border-color:#2b90d9}
+    .muted{color:var(--muted)}
+    .btn,.input,select{border:1px solid #2a2f3a;border-radius:12px;background:#0f131a;color:var(--text);padding:10px 12px}
+    .btn{cursor:pointer}
+    .btn.primary{background:#172031;border-color:var(--accent)}
+    .btn.ghost{background:transparent}
+    .btn.ok{background:#0f1c18;border-color:#1b6f52}
+    .btn.warn{background:#211f11;border-color:#5e5321}
+    .btn.err{background:#231313;border-color:#5b2020}
+    .pill{font-size:12px;padding:2px 8px;border:1px solid #2a2f3a;border-radius:999px;color:#b5ffc8}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-    .messages{display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;padding-right:4px}
-    .msg{display:grid;grid-template-columns:48px 1fr;gap:10px;background:#11151d;border:1px solid #2a2f3a;border-radius:14px;padding:10px}
-    .avatar{width:48px;height:48px;border-radius:10px;background:#1e2430;display:grid;place-items:center;color:#8bb7ff;font-weight:700}
-    .meta{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px}
-    .photo{max-width:100%;border-radius:10px;border:1px solid #2a2f3a}
-    .pill{padding:2px 8px;border:1px solid #2a2f3a;border-radius:999px;color:#b5ffc8;font-size:12px}
+    /* Video + overlay */
+    .videoWrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid #2a2f3a;aspect-ratio:16/9;background:#0b0e13;min-height:280px}
+    video{width:100%;height:100%;object-fit:cover;background:#000}
+    .roi{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+    .box{width:min(70%,720px);height:min(45%,360px);outline:2px dashed rgba(97,218,251,.85);outline-offset:-2px;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.35) inset}
+    .hud{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .hud .tag{background:#0f131a;border:1px solid #2a2f3a;border-radius:10px;padding:6px 8px;font-size:12px;color:#c9d3e1}
 
-    .hint{color:var(--muted);font-size:13px}
-    .footer{margin-top:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .list{display:flex;flex-direction:column;gap:8px;max-height:62vh;overflow:auto;padding-right:4px}
+    .item{display:flex;justify-content:space-between;align-items:center;background:#11151d;border:1px solid #2a2f3a;border-radius:12px;padding:8px 10px}
+    .item small{color:var(--muted)}
+    .total{font-size:22px;font-weight:700}
+    .toast{font-size:13px;padding:8px 10px;border-radius:10px}
+    .toast.ok{background:#12261d;border:1px solid #2b8a64}
+    .toast.warn{background:#2a2714;border:1px solid #6b5f20}
+    .toast.err{background:#2a1414;border:1px solid #6b2020}
 
-    /* Mobile tweaks */
-    @media (max-width:640px){ .row > * {flex:1 1 100%} .msg{grid-template-columns:40px 1fr} }
+    @media (max-width:900px){
+      main{grid-template-columns:1fr}
+      .videoWrap{aspect-ratio:auto;height:58vh;min-height:320px}
+      .list{max-height:none}
+    }
   </style>
 </head>
 <body>
   <header>
     <div class="wrap">
-      <h1>SmartCart A3</h1>
-      <div class="tabs">
-        <button class="tab" data-tab="scanner">Scanner (OCR)</button>
-        <button class="tab active" data-tab="chat">Chat do Bairro</button>
-        <button class="tab" data-tab="ranking">Ranking</button>
-      </div>
+      <h1>SmartCart A3 – OCR contínuo + Somatório (hotfix câmera)</h1>
     </div>
   </header>
 
   <main>
-    <!-- ===== SCANNER PLACEHOLDER (mantido leve para integrar ao seu A3 original) ===== -->
-    <section id="scanner" class="card">
-      <h2>Scanner (placeholder)</h2>
-      <p class="hint">Aqui permanece seu OCR contínuo do A3. Mantenha sua lógica atual e apenas chame <code>SmartCartChat.prefillFromOCR(price, marketName)</code> quando capturar um preço.</p>
-    </section>
-
-    <!-- ===== CHAT POR BAIRRO ===== -->
-    <section id="chat" class="active">
-      <div class="stack">
-        <div class="card">
-          <div class="row">
-            <div>
-              <div class="hint">Região atual</div>
-              <div id="regionLabel" class="pill">Detectando…</div>
-            </div>
-            <div class="row" style="margin-left:auto;gap:8px">
-              <button id="btnUseGPS" class="tab">Usar GPS</button>
-              <select id="regionSelect"></select>
-              <button id="btnApplyRegion" class="tab">Trocar bairro</button>
+    <section class="stack">
+      <div class="card stack">
+        <div class="row">
+          <button id="btnStart" class="btn primary">Iniciar Câmera</button>
+          <button id="btnToggle" class="btn">Pausar OCR</button>
+          <button id="btnClear" class="btn ghost">Limpar Lista</button>
+          <span id="status" class="muted">Pronto</span>
+        </div>
+        <div class="row">
+          <select id="deviceSelect" title="Escolher câmera"></select>
+          <span class="pill" id="secureTag">—</span>
+          <span class="pill" id="permTag">Permissão: —</span>
+        </div>
+        <div class="videoWrap" id="videoWrap">
+          <video id="video" playsinline muted></video>
+          <div class="roi">
+            <div class="box" id="roiBox" aria-label="Área de leitura"></div>
+            <div class="hud">
+              <span class="tag" id="fpsTag">OCR: 0/s</span>
+              <span class="tag" id="lastTag">Último: —</span>
+              <span class="tag" id="confTag">Conf: —</span>
             </div>
           </div>
         </div>
+        <div class="muted">Dica: página <strong>precisa ser HTTPS</strong> (ou localhost) e o navegador deve permitir câmera. Se a câmera não ligar, verifique permissões nas configurações do site.</div>
+      </div>
 
-        <div class="card">
-          <div class="messages" id="messages"></div>
-          <div class="footer">
-            <input id="msgText" class="input" placeholder="Escreva algo (opcional)…" />
-            <input id="msgPrice" class="input" inputmode="decimal" placeholder="Preço (ex: 7.99)" />
-            <input id="msgMarket" class="input" placeholder="Mercado (ex: SuperMax)" />
-            <input id="msgPhoto" type="file" accept="image/*" class="input" />
-            <button id="btnSend" class="primary">Enviar</button>
-          </div>
-          <div class="hint">Dica: você pode anexar a foto da etiqueta. O preço e o mercado ajudam o ranking automático.</div>
+      <div class="card">
+        <div class="grid2">
+          <input id="manualInput" class="input" placeholder="Adicionar manualmente (ex: 14,90)"/>
+          <button id="btnAddManual" class="btn ok">Adicionar Manualmente</button>
         </div>
+        <div class="row" style="margin-top:8px">
+          <button id="btnUndo" class="btn warn">Desfazer Último</button>
+          <small class="muted">Até 10 desfazeres</small>
+        </div>
+        <div id="toast" class="toast" style="display:none"></div>
       </div>
     </section>
 
-    <!-- ===== RANKING PLACEHOLDER ===== -->
-    <section id="ranking" class="card">
-      <h2>Ranking (placeholder)</h2>
-      <p class="hint">Aqui permanece seu Top 5 mercados do A3. O chat alimenta os dados em <code>regions/{regionKey}/messages</code>.</p>
-    </section>
+    <aside class="card stack">
+      <div class="row" style="justify-content:space-between">
+        <strong>Itens adicionados</strong>
+        <div> Total: <span class="total" id="totalLabel">R$ 0,00</span> </div>
+      </div>
+      <div id="list" class="list"></div>
+    </aside>
   </main>
 
-  <!-- ===== Firebase SDKs (v9 modular) ===== -->
-  <script type="module">
-    // IMPORTS
-    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-    import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
-    import { geohashForLocation, geohashQueryBounds } from 'https://cdn.jsdelivr.net/npm/geofire-common@5.2.1/dist/geofire-common.min.js';
+  <script src="https://unpkg.com/tesseract.js@5.0.2/dist/tesseract.min.js"></script>
+  <script>
+    // ===== UI helpers =====
+    const $ = s => document.querySelector(s);
+    const fmtBRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+    function showToast(msg, kind='ok'){ const el=$('#toast'); el.textContent=msg; el.className='toast '+kind; el.style.display='inline-block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>el.style.display='none',2200); }
 
-    // ==== CONFIG (use a do seu projeto; se o A3 já inicializa, reaproveitamos) ====
-    const defaultConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "smartcart-app-dc796",
-      storageBucket: "smartcart-app-dc796.firebasestorage.app",
-      appId: "YOUR_APP_ID"
-    };
+    // ===== Ambiente & permissões =====
+    const secureTag = $('#secureTag');
+    const permTag = $('#permTag');
+    secureTag.textContent = (location.protocol === 'https:' || location.hostname === 'localhost') ? 'Seguro: OK' : 'Inseguro: use HTTPS';
 
-    const app = getApps().length ? getApps()[0] : initializeApp(window.firebaseConfig || defaultConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-
-    // ==== UI helpers ====
-    const $ = (sel) => document.querySelector(sel);
-    const regionLabel = $('#regionLabel');
-    const regionSelect = $('#regionSelect');
-    const messagesEl = $('#messages');
-
-    // ==== Tabs simples ====
-    document.querySelectorAll('.tab[data-tab]').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        const id = btn.dataset.tab;
-        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-      });
-    });
-
-    // ==== Geo → regionKey
-    function getRegionKeyFromLatLng(lat, lng, precision = 6){
-      const gh = geohashForLocation([lat, lng]);
-      return gh.substring(0, precision);
+    async function readCameraPermission(){
+      if(!navigator.permissions) { permTag.textContent = 'Permissão: (API indisponível)'; return; }
+      try{ const p = await navigator.permissions.query({ name:'camera' }); permTag.textContent = 'Permissão: '+ p.state; p.onchange = ()=> permTag.textContent = 'Permissão: '+ p.state; }catch{ permTag.textContent = 'Permissão: —'; }
     }
+    readCameraPermission();
 
-    async function getGPS(){
-      return new Promise((resolve, reject)=>{
-        navigator.geolocation.getCurrentPosition(
-          (pos)=>{
-            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          },
-          (err)=> reject(err),
-          { enableHighAccuracy:true, timeout:8000 }
-        );
-      });
-    }
+    // ===== Somatório =====
+    const PRICE_REGEX = /(?:R\$\s*)?(\d{1,4}(?:[.,]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
+    const state = { running:false, stream:null, items:[], undoStack:[], total:0, detections:new Map() };
+    function parsePrice(str){ if(!str) return NaN; str=String(str).replace(/[^\d.,]/g,'').trim(); if(!str) return NaN; if(str.includes('.') && str.includes(',')) str=str.replace(/\./g,'').replace(',', '.'); else if(str.includes(',')) str=str.replace(',', '.'); const v=Number(str); return isFinite(v)?v:NaN; }
+    function renderList(){ $('#totalLabel').textContent = fmtBRL.format(Math.max(0,state.total)); const list=$('#list'); list.innerHTML=''; for(const it of state.items.slice().reverse()){ const row=document.createElement('div'); row.className='item'; row.innerHTML=`<div><strong>${fmtBRL.format(it.value)}</strong><br><small>${it.source}</small></div><button class="btn err" data-id="${it.id}">x</button>`; row.querySelector('button').onclick=()=>{ const i=state.items.findIndex(o=>o.id===it.id); if(i>=0){ state.total -= state.items[i].value; state.items.splice(i,1); renderList(); } }; list.appendChild(row);} }
+    function addItem(value, source='OCR'){ const now=Date.now(); const item={ id:now, value, source }; state.items.push(item); state.undoStack.push(item); if(state.undoStack.length>10) state.undoStack.shift(); state.total += value; renderList(); showToast(`${source==='OCR'?'Detectado':'Adicionado'}: ${fmtBRL.format(value)}`,'ok'); }
+    function undoLast(){ const last=state.undoStack.pop(); if(!last){ showToast('Nada para desfazer','warn'); return; } const i=state.items.findIndex(it=>it.id===last.id); if(i>=0){ state.total -= state.items[i].value; state.items.splice(i,1); renderList(); showToast(`Removido: ${fmtBRL.format(last.value)}`,'warn'); } }
+    function clearList(){ state.items=[]; state.undoStack=[]; state.total=0; renderList(); showToast('Lista limpa','warn'); }
 
-    // ==== Estado do chat ====
-    const SmartCartChat = {
-      uid:null,
-      lat:null, lng:null,
-      regionKey:null,
-      unsub:null,
-      precision:6,
+    // ===== Câmera =====
+    const deviceSelect = $('#deviceSelect');
+    const video = $('#video');
+    const statusEl = $('#status');
+    async function listDevices(){ if(!navigator.mediaDevices?.enumerateDevices) return; const devices = await navigator.mediaDevices.enumerateDevices(); deviceSelect.innerHTML=''; devices.filter(d=>d.kind==='videoinput').forEach(d=>{ const opt=document.createElement('option'); opt.value=d.deviceId; opt.textContent=d.label||('Câmera '+(deviceSelect.length+1)); deviceSelect.appendChild(opt); }); if(!deviceSelect.value && deviceSelect.options.length){ deviceSelect.selectedIndex = deviceSelect.options.length-1; } }
 
-      async init(){
-        // Auth anônima
-        await signInAnonymously(auth).catch(()=>{});
-        onAuthStateChanged(auth, async (user)=>{
-          if(!user) return;
-          this.uid = user.uid;
-          try {
-            const { lat, lng } = await getGPS();
-            this.lat = lat; this.lng = lng;
-            this.regionKey = getRegionKeyFromLatLng(lat, lng, this.precision);
-            this.renderRegion();
-            this.populateRegionSelect();
-            this.subscribe();
-          } catch(e){
-            // Sem GPS, usa uma key genérica (pode trocar manualmente)
-            this.regionKey = 'brazil:default';
-            regionLabel.textContent = 'Sem GPS – escolha um bairro';
-            this.populateRegionSelect();
-            this.subscribe();
-          }
-        });
-
-        // Handlers
-        $('#btnUseGPS').addEventListener('click', async ()=>{
-          try{
-            const { lat, lng } = await getGPS();
-            this.lat = lat; this.lng = lng;
-            this.regionKey = getRegionKeyFromLatLng(lat, lng, this.precision);
-            this.renderRegion();
-            this.subscribe();
-          }catch(e){ alert('Não conseguimos acessar sua localização.'); }
-        });
-
-        $('#btnApplyRegion').addEventListener('click', ()=>{
-          const key = regionSelect.value;
-          if(!key) return;
-          this.regionKey = key;
-          this.renderRegion();
-          this.subscribe();
-        });
-
-        $('#btnSend').addEventListener('click', ()=> this.sendFromUI());
-      },
-
-      renderRegion(){
-        regionLabel.textContent = this.regionKey;
-        if(!Array.from(regionSelect.options).some(o=>o.value===this.regionKey)){
-          const opt = document.createElement('option');
-          opt.value = this.regionKey; opt.textContent = this.regionKey;
-          regionSelect.appendChild(opt);
-          regionSelect.value = this.regionKey;
-        } else {
-          regionSelect.value = this.regionKey;
-        }
-      },
-
-      populateRegionSelect(){
-        // Sugestões básicas: região atual + vizinhas por geohash (±1 em cada direção)
-        if(!this.lat||!this.lng) return;
-        const base = geohashForLocation([this.lat, this.lng]).substring(0, this.precision);
-        const neighbors = [base+'n', base+'s', base+'e', base+'w'];
-        const all = [base, ...neighbors];
-        regionSelect.innerHTML='';
-        all.forEach(k=>{
-          const opt = document.createElement('option');
-          opt.value = k; opt.textContent = k;
-          regionSelect.appendChild(opt);
-        });
-        regionSelect.value = base;
-      },
-
-      subscribe(){
-        if(this.unsub) this.unsub();
-        const colRef = collection(db, 'regions', this.regionKey, 'messages');
-        const q = query(colRef, orderBy('createdAt','desc'), limit(100));
-        this.unsub = onSnapshot(q, (snap)=>{
-          const msgs = snap.docs.map(d=>({ id:d.id, ...d.data() }));
-          this.renderMessages(msgs);
-        });
-      },
-
-      async sendFromUI(){
-        const text = $('#msgText').value.trim() || null;
-        const rawPrice = $('#msgPrice').value.trim();
-        const price = rawPrice ? Number(rawPrice.replace(',','.')) : null;
-        const marketName = $('#msgMarket').value.trim() || null;
-        const fileEl = $('#msgPhoto');
-        const file = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
-        await this.send({ text, price, marketName, file });
-        // limpar
-        $('#msgText').value='';
-        $('#msgPrice').value='';
-        $('#msgMarket').value='';
-        fileEl.value='';
-      },
-
-      async send({ text, price, marketName, file }){
-        if(!this.regionKey) return alert('Defina um bairro/região.');
-        let photoUrl = null;
-        if(file){
-          const path = `uploads/${this.uid}/${Date.now()}_${(file.name||'foto')}`;
-          const storageRef = ref(storage, path);
-          await uploadBytes(storageRef, file);
-          photoUrl = await getDownloadURL(storageRef);
-        }
-        const geohash = (this.lat&&this.lng) ? geohashForLocation([this.lat, this.lng]) : null;
-        const colRef = collection(db, 'regions', this.regionKey, 'messages');
-        await addDoc(colRef, {
-          uid: this.uid,
-          text, price: (typeof price==='number' && !Number.isNaN(price))? price : null,
-          marketName: marketName || null,
-          photoUrl, lat: this.lat||null, lng: this.lng||null,
-          geohash, regionKey: this.regionKey,
-          createdAt: serverTimestamp()
-        });
-      },
-
-      renderMessages(msgs){
-        messagesEl.innerHTML='';
-        for(const m of msgs){
-          const li = document.createElement('div');
-          li.className='msg';
-          const av = document.createElement('div');
-          av.className='avatar';
-          av.textContent = (m.uid||'U').slice(0,2).toUpperCase();
-          const body = document.createElement('div');
-          const meta = document.createElement('div'); meta.className='meta';
-          const ts = m.createdAt?.toDate ? m.createdAt.toDate() : null;
-          meta.innerHTML = `⚑ <strong>${m.marketName||'Mercado'}</strong> · ${ts? ts.toLocaleString() : 'agora'} · região: ${m.regionKey||'-'}`;
-          const text = document.createElement('div');
-          const parts = [];
-          if(m.text) parts.push(m.text);
-          if(typeof m.price==='number') parts.push(`<span class="pill">R$ ${m.price.toFixed(2)}</span>`);
-          text.innerHTML = parts.join(' ');
-          body.appendChild(meta);
-          body.appendChild(text);
-          if(m.photoUrl){
-            const img = document.createElement('img');
-            img.src = m.photoUrl; img.alt = 'Foto da etiqueta'; img.className='photo';
-            body.appendChild(img);
-          }
-          li.appendChild(av); li.appendChild(body);
-          messagesEl.appendChild(li);
-        }
-      },
-
-      // Integração com o OCR do A3
-      prefillFromOCR(price, marketName){
-        if(typeof price==='number') $('#msgPrice').value = String(price);
-        if(marketName) $('#msgMarket').value = marketName;
+    async function startCamera(){
+      if(!navigator.mediaDevices?.getUserMedia){ statusEl.textContent='Seu navegador não suporta câmera (getUserMedia)'; showToast('getUserMedia indisponível','err'); return; }
+      try{
+        if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
+        const preferDevice = deviceSelect.value;
+        const constraints = preferDevice ? { video:{ deviceId:{ exact: preferDevice } }, audio:false } : { video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 }, advanced:[{facingMode:'environment'}] }, audio:false };
+        statusEl.textContent='Solicitando câmera…';
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        state.stream = stream; video.srcObject = stream; await video.play();
+        statusEl.textContent='Câmera ligada';
+        await listDevices();
+      } catch(e){
+        console.error('Camera error', e);
+        let msg = 'Erro ao abrir câmera';
+        if(e.name==='NotAllowedError') msg = 'Permissão negada. Libere a câmera nas configurações do site.';
+        else if(e.name==='NotFoundError') msg = 'Nenhuma câmera encontrada. Tente escolher outro dispositivo.';
+        else if(e.name==='NotReadableError') msg = 'Câmera ocupada por outro app.';
+        else if(e.message && e.message.includes('Only secure origins')) msg = 'Precisa usar HTTPS (ou localhost).';
+        statusEl.textContent = msg; showToast(msg,'err');
       }
-    };
+    }
 
-    // Expor no window para o módulo do OCR usar
-    window.SmartCartChat = SmartCartChat;
+    // ===== OCR =====
+    const fpsTag = $('#fpsTag'), lastTag=$('#lastTag'), confTag=$('#confTag');
+    let worker, loopId=null, lastTick=0, ocrCountWindow=0, lastFPSUpdate=0;
+    async function initTesseract(){ if(worker) return worker; worker = await Tesseract.createWorker({ logger:m=>{/* console.log(m) */} }); await worker.loadLanguage('eng'); await worker.initialize('eng'); await worker.setParameters({ tessedit_char_whitelist:'0123456789R$.,-' }); return worker; }
 
-    // Start
-    SmartCartChat.init();
+    function getRoiCanvas(){ const vw=video.videoWidth||video.clientWidth; const vh=video.videoHeight||video.clientHeight; if(!vw||!vh) return null; const rw=Math.round(vw*0.70), rh=Math.round(vh*0.45), rx=Math.round((vw-rw)/2), ry=Math.round((vh-rh)/2); const scale=0.6, cw=Math.max(1,Math.round(rw*scale)), ch=Math.max(1,Math.round(rh*scale)); const c=getRoiCanvas._c||document.createElement('canvas'); const ctx=c.getContext('2d',{ willReadFrequently:true }); c.width=cw; c.height=ch; ctx.drawImage(video, rx, ry, rw, rh, 0, 0, cw, ch); return c; }
+
+    function registerDetection(value){ const now=Date.now(); const key=value.toFixed(2); const rec=state.detections.get(key)||{count:0,last:0}; rec.count++; rec.last=now; state.detections.set(key,rec); for(const [k,r] of state.detections) if(now-r.last>3000) state.detections.delete(k); if(rec.count>=2){ state.detections.clear(); addItem(value, 'OCR'); } }
+
+    async function ocrLoop(){ if(!state.running) return; const now=performance.now(); if(now-lastTick<700){ loopId=requestAnimationFrame(ocrLoop); return; } lastTick=now; try{ const canvas=getRoiCanvas(); if(canvas){ const { data } = await worker.recognize(canvas); ocrCountWindow++; const text=(data.text||'').replace(/\s+/g,' '); confTag.textContent='Conf: '+(data.confidence?Math.round(data.confidence):'—'); const found=new Set(); let m; while((m=PRICE_REGEX.exec(text))!==null){ const raw=m[1]; const val=parsePrice(raw); if(isFinite(val)&&val>=0.1&&val<=10000){ found.add(Number(val.toFixed(2))); } } lastTag.textContent='Último: '+(found.size? fmtBRL.format([...found][0]) : '—'); if(found.size){ const val=Math.min(...found); registerDetection(val); } } } catch(e){ console.warn('OCR erro:', e); } finally{ const t=performance.now(); if(t-lastFPSUpdate>1000){ fpsTag.textContent='OCR: '+ocrCountWindow+'/s'; ocrCountWindow=0; lastFPSUpdate=t; } loopId=requestAnimationFrame(ocrLoop); } }
+
+    // ===== Controles =====
+    $('#btnStart').addEventListener('click', async ()=>{ await startCamera(); await initTesseract(); if(!state.running){ state.running=true; $('#btnToggle').textContent='Pausar OCR'; ocrLoop(); showToast('OCR iniciado'); } });
+    $('#btnToggle').addEventListener('click', ()=>{ if(!worker){ showToast('Inicie a câmera primeiro','warn'); return; } state.running=!state.running; $('#btnToggle').textContent= state.running? 'Pausar OCR':'Retomar OCR'; if(state.running){ ocrLoop(); showToast('OCR retomado'); } else { if(loopId) cancelAnimationFrame(loopId); showToast('OCR pausado','warn'); } });
+    $('#btnAddManual').addEventListener('click', ()=>{ const v=parsePrice($('#manualInput').value.trim()); if(!isFinite(v)){ showToast('Valor inválido','err'); return; } addItem(v,'Manual'); $('#manualInput').value=''; });
+    $('#btnUndo').addEventListener('click', undoLast);
+    $('#btnClear').addEventListener('click', clearList);
+
+    // Atualiza lista de câmeras quando disponível
+    if(navigator.mediaDevices?.enumerateDevices){ navigator.mediaDevices.addEventListener?.('devicechange', listDevices); listDevices(); }
+
+    // Evita vazamento
+    window.addEventListener('beforeunload', ()=>{ if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); } });
   </script>
 </body>
 </html>
