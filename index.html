@@ -1,204 +1,327 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SMARTCART</title>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SmartCart A3 – com Chat por Bairro</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+    :root { --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#61dafb; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:500 15px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    header{position:sticky;top:0;background:#0f1115cc;backdrop-filter:saturate(140%) blur(6px);border-bottom:1px solid #222}
+    .wrap{max-width:980px;margin:0 auto;padding:16px}
+    h1{font-size:20px;margin:0 0 4px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border:1px solid #2a2f3a;border-radius:12px;background:var(--card);cursor:pointer}
+    .tab.active{outline:2px solid #2b90d9}
+    main{max-width:980px;margin:10px auto;padding:10px}
+    section{display:none}
+    section.active{display:block}
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #0f172a;
-      color: #f1f5f9;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
+    /* ===== CHAT UI ===== */
+    .card{background:var(--card);border:1px solid #2a2f3a;border-radius:16px;padding:12px}
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .input, select, button{background:#0f131a;color:var(--text);border:1px solid #2a2f3a;border-radius:12px;padding:10px 12px}
+    .input::placeholder{color:#657187}
+    button{cursor:pointer}
+    button.primary{background:#1a2634;border-color:#2b90d9}
 
-    h1 {
-      font-size: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      color: #22c55e;
-    }
+    .messages{display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;padding-right:4px}
+    .msg{display:grid;grid-template-columns:48px 1fr;gap:10px;background:#11151d;border:1px solid #2a2f3a;border-radius:14px;padding:10px}
+    .avatar{width:48px;height:48px;border-radius:10px;background:#1e2430;display:grid;place-items:center;color:#8bb7ff;font-weight:700}
+    .meta{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .photo{max-width:100%;border-radius:10px;border:1px solid #2a2f3a}
+    .pill{padding:2px 8px;border:1px solid #2a2f3a;border-radius:999px;color:#b5ffc8;font-size:12px}
 
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
+    .hint{color:var(--muted);font-size:13px}
+    .footer{margin-top:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 
-    video, canvas {
-      width: 100%;
-      max-width: 400px;
-      border-radius: 12px;
-    }
-
-    #overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-    }
-
-    #precos {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 300px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-
-    .preco-btn {
-      padding: 10px 20px;
-      background: #10b981;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .preco-btn:hover {
-      background: #34d399;
-      transform: scale(1.05);
-    }
-
-    #total {
-      font-size: 1.5rem;
-      margin-top: 10px;
-      color: #38bdf8;
-    }
-
-    .btn-controle {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 15px;
-    }
-
-    .btn-controle button {
-      padding: 10px 16px;
-      font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      background: #3b82f6;
-      color: white;
-    }
-
-    .btn-controle button:hover {
-      background: #60a5fa;
-    }
-
-    #manualInput {
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      width: 180px;
-      font-size: 1rem;
-    }
-
-    #manualBtn {
-      background: #16a34a;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 15px;
-      font-size: 1rem;
-      margin-left: 8px;
-      cursor: pointer;
-    }
-
-    #manualBtn:hover {
-      background: #4ade80;
-    }
+    /* Mobile tweaks */
+    @media (max-width:640px){ .row > * {flex:1 1 100%} .msg{grid-template-columns:40px 1fr} }
   </style>
 </head>
 <body>
-  <h1>SMARTCART 🛒</h1>
-  <div class="container">
-    <div style="position: relative; max-width: 400px;">
-      <video id="video" autoplay playsinline></video>
-      <canvas id="overlay"></canvas>
+  <header>
+    <div class="wrap">
+      <h1>SmartCart A3</h1>
+      <div class="tabs">
+        <button class="tab" data-tab="scanner">Scanner (OCR)</button>
+        <button class="tab active" data-tab="chat">Chat do Bairro</button>
+        <button class="tab" data-tab="ranking">Ranking</button>
+      </div>
     </div>
+  </header>
 
-    <div id="precos"></div>
+  <main>
+    <!-- ===== SCANNER PLACEHOLDER (mantido leve para integrar ao seu A3 original) ===== -->
+    <section id="scanner" class="card">
+      <h2>Scanner (placeholder)</h2>
+      <p class="hint">Aqui permanece seu OCR contínuo do A3. Mantenha sua lógica atual e apenas chame <code>SmartCartChat.prefillFromOCR(price, marketName)</code> quando capturar um preço.</p>
+    </section>
 
-    <div>
-      <input type="number" id="manualInput" step="0.01" placeholder="Valor manual">
-      <button id="manualBtn" onclick="adicionarManual()">➕ Adicionar</button>
-    </div>
+    <!-- ===== CHAT POR BAIRRO ===== -->
+    <section id="chat" class="active">
+      <div class="stack">
+        <div class="card">
+          <div class="row">
+            <div>
+              <div class="hint">Região atual</div>
+              <div id="regionLabel" class="pill">Detectando…</div>
+            </div>
+            <div class="row" style="margin-left:auto;gap:8px">
+              <button id="btnUseGPS" class="tab">Usar GPS</button>
+              <select id="regionSelect"></select>
+              <button id="btnApplyRegion" class="tab">Trocar bairro</button>
+            </div>
+          </div>
+        </div>
 
-    <div class="btn-controle">
-      <button onclick="desfazerUltimo()">↩️ Desfazer Último</button>
-      <button onclick="limparSugestoes()">🧹 Limpar Sugestões</button>
-    </div>
+        <div class="card">
+          <div class="messages" id="messages"></div>
+          <div class="footer">
+            <input id="msgText" class="input" placeholder="Escreva algo (opcional)…" />
+            <input id="msgPrice" class="input" inputmode="decimal" placeholder="Preço (ex: 7.99)" />
+            <input id="msgMarket" class="input" placeholder="Mercado (ex: SuperMax)" />
+            <input id="msgPhoto" type="file" accept="image/*" class="input" />
+            <button id="btnSend" class="primary">Enviar</button>
+          </div>
+          <div class="hint">Dica: você pode anexar a foto da etiqueta. O preço e o mercado ajudam o ranking automático.</div>
+        </div>
+      </div>
+    </section>
 
-    <div id="total">Total: R$ <span id="soma">0.00</span></div>
-  </div>
+    <!-- ===== RANKING PLACEHOLDER ===== -->
+    <section id="ranking" class="card">
+      <h2>Ranking (placeholder)</h2>
+      <p class="hint">Aqui permanece seu Top 5 mercados do A3. O chat alimenta os dados em <code>regions/{regionKey}/messages</code>.</p>
+    </section>
+  </main>
 
-  <script>
-    let total = 0;
-    let ultimoValor = null;
-    const valoresAnteriores = [];
+  <!-- ===== Firebase SDKs (v9 modular) ===== -->
+  <script type="module">
+    // IMPORTS
+    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+    import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
+    import { geohashForLocation, geohashQueryBounds } from 'https://cdn.jsdelivr.net/npm/geofire-common@5.2.1/dist/geofire-common.min.js';
 
-    function adicionarManual() {
-      const input = document.getElementById("manualInput");
-      const valor = parseFloat(input.value.replace(",", "."));
-      if (!isNaN(valor) && valor > 0) {
-        valoresAnteriores.push(valor);
-        total += valor;
-        document.getElementById("soma").innerText = total.toFixed(2);
-        input.value = "";
-      }
-    }
+    // ==== CONFIG (use a do seu projeto; se o A3 já inicializa, reaproveitamos) ====
+    const defaultConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "smartcart-app-dc796",
+      storageBucket: "smartcart-app-dc796.firebasestorage.app",
+      appId: "YOUR_APP_ID"
+    };
 
-    function desfazerUltimo() {
-      if (valoresAnteriores.length > 0) {
-        const valor = valoresAnteriores.pop();
-        total -= valor;
-        if (total < 0) total = 0;
-        document.getElementById("soma").innerText = total.toFixed(2);
-      }
-    }
+    const app = getApps().length ? getApps()[0] : initializeApp(window.firebaseConfig || defaultConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-    function limparSugestoes() {
-      document.getElementById("precos").innerHTML = "";
-    }
+    // ==== UI helpers ====
+    const $ = (sel) => document.querySelector(sel);
+    const regionLabel = $('#regionLabel');
+    const regionSelect = $('#regionSelect');
+    const messagesEl = $('#messages');
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
-      .then(stream => {
-        const video = document.getElementById("video");
-        video.srcObject = stream;
+    // ==== Tabs simples ====
+    document.querySelectorAll('.tab[data-tab]').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const id = btn.dataset.tab;
+        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
       });
+    });
 
-    const overlay = document.getElementById("overlay");
-    const ctx = overlay.getContext("2d");
-
-    function desenharRetangulo() {
-      overlay.width = 400;
-      overlay.height = 300;
-      ctx.clearRect(0, 0, overlay.width, overlay.height);
-      const w = 200, h = 60;
-      const x = (overlay.width - w) / 2;
-      const y = (overlay.height - h) / 2;
-      ctx.strokeStyle = "#22c55e";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x, y, w, h);
+    // ==== Geo → regionKey
+    function getRegionKeyFromLatLng(lat, lng, precision = 6){
+      const gh = geohashForLocation([lat, lng]);
+      return gh.substring(0, precision);
     }
 
-    setInterval(desenharRetangulo, 1000);
+    async function getGPS(){
+      return new Promise((resolve, reject)=>{
+        navigator.geolocation.getCurrentPosition(
+          (pos)=>{
+            resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          },
+          (err)=> reject(err),
+          { enableHighAccuracy:true, timeout:8000 }
+        );
+      });
+    }
+
+    // ==== Estado do chat ====
+    const SmartCartChat = {
+      uid:null,
+      lat:null, lng:null,
+      regionKey:null,
+      unsub:null,
+      precision:6,
+
+      async init(){
+        // Auth anônima
+        await signInAnonymously(auth).catch(()=>{});
+        onAuthStateChanged(auth, async (user)=>{
+          if(!user) return;
+          this.uid = user.uid;
+          try {
+            const { lat, lng } = await getGPS();
+            this.lat = lat; this.lng = lng;
+            this.regionKey = getRegionKeyFromLatLng(lat, lng, this.precision);
+            this.renderRegion();
+            this.populateRegionSelect();
+            this.subscribe();
+          } catch(e){
+            // Sem GPS, usa uma key genérica (pode trocar manualmente)
+            this.regionKey = 'brazil:default';
+            regionLabel.textContent = 'Sem GPS – escolha um bairro';
+            this.populateRegionSelect();
+            this.subscribe();
+          }
+        });
+
+        // Handlers
+        $('#btnUseGPS').addEventListener('click', async ()=>{
+          try{
+            const { lat, lng } = await getGPS();
+            this.lat = lat; this.lng = lng;
+            this.regionKey = getRegionKeyFromLatLng(lat, lng, this.precision);
+            this.renderRegion();
+            this.subscribe();
+          }catch(e){ alert('Não conseguimos acessar sua localização.'); }
+        });
+
+        $('#btnApplyRegion').addEventListener('click', ()=>{
+          const key = regionSelect.value;
+          if(!key) return;
+          this.regionKey = key;
+          this.renderRegion();
+          this.subscribe();
+        });
+
+        $('#btnSend').addEventListener('click', ()=> this.sendFromUI());
+      },
+
+      renderRegion(){
+        regionLabel.textContent = this.regionKey;
+        if(!Array.from(regionSelect.options).some(o=>o.value===this.regionKey)){
+          const opt = document.createElement('option');
+          opt.value = this.regionKey; opt.textContent = this.regionKey;
+          regionSelect.appendChild(opt);
+          regionSelect.value = this.regionKey;
+        } else {
+          regionSelect.value = this.regionKey;
+        }
+      },
+
+      populateRegionSelect(){
+        // Sugestões básicas: região atual + vizinhas por geohash (±1 em cada direção)
+        if(!this.lat||!this.lng) return;
+        const base = geohashForLocation([this.lat, this.lng]).substring(0, this.precision);
+        const neighbors = [base+'n', base+'s', base+'e', base+'w'];
+        const all = [base, ...neighbors];
+        regionSelect.innerHTML='';
+        all.forEach(k=>{
+          const opt = document.createElement('option');
+          opt.value = k; opt.textContent = k;
+          regionSelect.appendChild(opt);
+        });
+        regionSelect.value = base;
+      },
+
+      subscribe(){
+        if(this.unsub) this.unsub();
+        const colRef = collection(db, 'regions', this.regionKey, 'messages');
+        const q = query(colRef, orderBy('createdAt','desc'), limit(100));
+        this.unsub = onSnapshot(q, (snap)=>{
+          const msgs = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+          this.renderMessages(msgs);
+        });
+      },
+
+      async sendFromUI(){
+        const text = $('#msgText').value.trim() || null;
+        const rawPrice = $('#msgPrice').value.trim();
+        const price = rawPrice ? Number(rawPrice.replace(',','.')) : null;
+        const marketName = $('#msgMarket').value.trim() || null;
+        const fileEl = $('#msgPhoto');
+        const file = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+        await this.send({ text, price, marketName, file });
+        // limpar
+        $('#msgText').value='';
+        $('#msgPrice').value='';
+        $('#msgMarket').value='';
+        fileEl.value='';
+      },
+
+      async send({ text, price, marketName, file }){
+        if(!this.regionKey) return alert('Defina um bairro/região.');
+        let photoUrl = null;
+        if(file){
+          const path = `uploads/${this.uid}/${Date.now()}_${(file.name||'foto')}`;
+          const storageRef = ref(storage, path);
+          await uploadBytes(storageRef, file);
+          photoUrl = await getDownloadURL(storageRef);
+        }
+        const geohash = (this.lat&&this.lng) ? geohashForLocation([this.lat, this.lng]) : null;
+        const colRef = collection(db, 'regions', this.regionKey, 'messages');
+        await addDoc(colRef, {
+          uid: this.uid,
+          text, price: (typeof price==='number' && !Number.isNaN(price))? price : null,
+          marketName: marketName || null,
+          photoUrl, lat: this.lat||null, lng: this.lng||null,
+          geohash, regionKey: this.regionKey,
+          createdAt: serverTimestamp()
+        });
+      },
+
+      renderMessages(msgs){
+        messagesEl.innerHTML='';
+        for(const m of msgs){
+          const li = document.createElement('div');
+          li.className='msg';
+          const av = document.createElement('div');
+          av.className='avatar';
+          av.textContent = (m.uid||'U').slice(0,2).toUpperCase();
+          const body = document.createElement('div');
+          const meta = document.createElement('div'); meta.className='meta';
+          const ts = m.createdAt?.toDate ? m.createdAt.toDate() : null;
+          meta.innerHTML = `⚑ <strong>${m.marketName||'Mercado'}</strong> · ${ts? ts.toLocaleString() : 'agora'} · região: ${m.regionKey||'-'}`;
+          const text = document.createElement('div');
+          const parts = [];
+          if(m.text) parts.push(m.text);
+          if(typeof m.price==='number') parts.push(`<span class="pill">R$ ${m.price.toFixed(2)}</span>`);
+          text.innerHTML = parts.join(' ');
+          body.appendChild(meta);
+          body.appendChild(text);
+          if(m.photoUrl){
+            const img = document.createElement('img');
+            img.src = m.photoUrl; img.alt = 'Foto da etiqueta'; img.className='photo';
+            body.appendChild(img);
+          }
+          li.appendChild(av); li.appendChild(body);
+          messagesEl.appendChild(li);
+        }
+      },
+
+      // Integração com o OCR do A3
+      prefillFromOCR(price, marketName){
+        if(typeof price==='number') $('#msgPrice').value = String(price);
+        if(marketName) $('#msgMarket').value = marketName;
+      }
+    };
+
+    // Expor no window para o módulo do OCR usar
+    window.SmartCartChat = SmartCartChat;
+
+    // Start
+    SmartCartChat.init();
   </script>
 </body>
 </html>
