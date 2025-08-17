@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>SmartCart A3 – câmera traseira (v1.2)</title>
+  <title>SmartCart A3 – OCR + Somatório</title>
   <style>
-    :root{ --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#2b90d9; --ok:#3ccf91; --warn:#f4d35e; --err:#ff6b6b; }
+    :root{
+      --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#2b90d9;
+      --ok:#3ccf91; --warn:#f4d35e; --err:#ff6b6b;
+    }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:500 15px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
     header{position:sticky;top:0;z-index:3;background:#0f1115cc;border-bottom:1px solid #20242e;backdrop-filter:blur(6px)}
@@ -16,23 +19,33 @@
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .stack{display:flex;flex-direction:column;gap:10px}
     .muted{color:var(--muted)}
-    .btn,.input{border:1px solid #2a2f3a;border-radius:12px;background:#0f131a;color:var(--text);padding:10px 12px}
+    .btn,.input{border:1px solid #2a2f3a;border-radius:12px;background:#0f131a;color:#e6e9ef;padding:10px 12px}
     .btn{cursor:pointer}
-    .btn.primary{background:#172031;border-color:var(--accent)}
+    .btn.primary{background:#172031;border-color:#2b90d9}
+    .btn.ghost{background:transparent}
     .btn.ok{background:#0f1c18;border-color:#1b6f52}
     .btn.warn{background:#211f11;border-color:#5e5321}
     .btn.err{background:#231313;border-color:#5b2020}
+    .pill{font-size:12px;padding:2px 8px;border:1px solid #2a2f3a;border-radius:999px;color:#b5ffc8}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
     /* Video + overlay */
-    .videoWrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid #2a2f3a;aspect-ratio:16/9;background:#0b0e13;min-height:280px}
-    video{width:100%;height:100%;object-fit:cover;background:#000}
-    .roi{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-    /* ROI menor e específica para etiquetas: ~55% largura x 22% altura */
-    .box{width:min(55%,560px);height:min(22%,180px);outline:2px dashed rgba(97,218,251,.9);outline-offset:-2px;border-radius:10px;box-shadow:0 0 0 9999px rgba(0,0,0,.42) inset}
+    .videoWrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid #2a2f3a;aspect-ratio:16/9;background:#0b0e13}
+    video{width:100%;height:100%;object-fit:cover}
+    .roi{
+      position:absolute;inset:0;display:grid;place-items:center;pointer-events:none
+    }
+    /* ROI VISUAL mantida; o recorte real foi ajustado no JS */
+    .box{
+      width:min(70%,720px);height:min(45%,360px);
+      outline:2px dashed rgba(97,218,251,.85);
+      outline-offset:-2px;border-radius:10px;
+      box-shadow:0 0 0 9999px rgba(0,0,0,.35) inset;
+    }
     .hud{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap}
     .hud .tag{background:#0f131a;border:1px solid #2a2f3a;border-radius:10px;padding:6px 8px;font-size:12px;color:#c9d3e1}
 
+    /* Lista / total */
     .list{display:flex;flex-direction:column;gap:8px;max-height:62vh;overflow:auto;padding-right:4px}
     .item{display:flex;justify-content:space-between;align-items:center;background:#11151d;border:1px solid #2a2f3a;border-radius:12px;padding:8px 10px}
     .item small{color:var(--muted)}
@@ -44,7 +57,7 @@
 
     @media (max-width:900px){
       main{grid-template-columns:1fr}
-      .videoWrap{aspect-ratio:auto;height:58vh;min-height:320px}
+      .videoWrap{aspect-ratio:auto;height:54vh}
       .list{max-height:none}
     }
   </style>
@@ -52,16 +65,18 @@
 <body>
   <header>
     <div class="wrap">
-      <h1>SmartCart A3 – câmera traseira (v1.2)</h1>
+      <h1>SmartCart A3 – OCR contínuo + Somatório</h1>
     </div>
   </header>
 
   <main>
+    <!-- Lado esquerdo: câmera + controles -->
     <section class="stack">
       <div class="card stack">
         <div class="row">
           <button id="btnStart" class="btn primary">Iniciar Câmera</button>
-          <button id="btnClear" class="btn warn">Limpar Lista</button>
+          <button id="btnToggle" class="btn">Pausar OCR</button>
+          <button id="btnClear" class="btn ghost">Limpar Lista</button>
           <span id="status" class="muted">Pronto</span>
         </div>
         <div class="videoWrap" id="videoWrap">
@@ -75,7 +90,7 @@
             </div>
           </div>
         </div>
-        <div class="muted">Dica: mantenha a etiqueta <strong>inteira</strong> dentro do retângulo. Página precisa ser <strong>HTTPS</strong> (ou localhost) e permitir câmera.</div>
+        <div class="muted">Dica: mantenha a etiqueta dentro do retângulo. O app identifica valores como <strong>7,99</strong>, <strong>12.50</strong>, <strong>1.234,56</strong> e soma automaticamente, sem alertas.</div>
       </div>
 
       <div class="card">
@@ -91,6 +106,7 @@
       </div>
     </section>
 
+    <!-- Lado direito: lista + total -->
     <aside class="card stack">
       <div class="row" style="justify-content:space-between">
         <strong>Itens adicionados</strong>
@@ -100,118 +116,299 @@
     </aside>
   </main>
 
+  <!-- Tesseract.js para OCR -->
   <script src="https://unpkg.com/tesseract.js@5.0.2/dist/tesseract.min.js"></script>
   <script>
-    const $ = s => document.querySelector(s);
-    const fmtBRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
-    function showToast(msg, kind='ok'){ const el=$('#toast'); el.textContent=msg; el.className='toast '+kind; el.style.display='inline-block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>el.style.display='none',2200); }
+    // ====== Utilidades ======
+    const fmtBRL = new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' });
+    const $ = sel => document.querySelector(sel);
 
-    // ===== Somatório / estado =====
-    const PRICE_REGEX = /(?:R\$\s*)?(\d{1,4}(?:[.,]\d{3})*(?:[.,]\d{2})|\d+[.,]\d{2})/g;
-    const state = { running:false, stream:null, items:[], undoStack:[], total:0, detections:new Map(), lastAdded:{value:null, at:0} };
-    function parsePrice(str){ if(!str) return NaN; str=String(str).replace(/[^\d.,]/g,'').trim(); if(!str) return NaN; if(str.includes('.') && str.includes(',')) str=str.replace(/\./g,'').replace(',', '.'); else if(str.includes(',')) str=str.replace(',', '.'); const v=Number(str); return isFinite(v)?v:NaN; }
-    function renderList(){ $('#totalLabel').textContent = fmtBRL.format(Math.max(0,state.total)); const list=$('#list'); list.innerHTML=''; for(const it of state.items.slice().reverse()){ const row=document.createElement('div'); row.className='item'; row.innerHTML=`<div><strong>${fmtBRL.format(it.value)}</strong><br><small>${it.source}</small></div><button class="btn err" data-id="${it.id}">x</button>`; row.querySelector('button').onclick=()=>{ const i=state.items.findIndex(o=>o.id===it.id); if(i>=0){ state.total -= state.items[i].value; state.items.splice(i,1); renderList(); } }; list.appendChild(row);} }
-    function addItem(value, source='OCR'){ const now=Date.now(); if(state.lastAdded.value===value && (now-state.lastAdded.at)<8000){ $('#lastTag').textContent=`Último: repetido ${fmtBRL.format(value)}`; return; } const item={ id:now, value, source }; state.items.push(item); state.undoStack.push(item); if(state.undoStack.length>10) state.undoStack.shift(); state.total += value; state.lastAdded={ value, at: now }; renderList(); showToast(`${source==='OCR'?'Detectado':'Adicionado'}: ${fmtBRL.format(value)}`,'ok'); }
-    function undoLast(){ const last=state.undoStack.pop(); if(!last){ showToast('Nada para desfazer','warn'); return; } const i=state.items.findIndex(it=>it.id===last.id); if(i>=0){ state.total -= state.items[i].value; state.items.splice(i,1); renderList(); showToast(`Removido: ${fmtBRL.format(last.value)}`,'warn'); } }
-    function clearList(){ state.items=[]; state.undoStack=[]; state.total=0; renderList(); showToast('Lista limpa','warn'); }
+    function showToast(msg, kind='ok'){
+      const el = $('#toast');
+      el.textContent = msg;
+      el.className = 'toast ' + kind;
+      el.style.display = 'inline-block';
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(()=> el.style.display = 'none', 2200);
+    }
 
-    // ===== Câmera: sempre traseira =====
-    const video = $('#video');
-    const statusEl = $('#status');
-    async function startCamera(){
-      if(!navigator.mediaDevices?.getUserMedia){ statusEl.textContent='Seu navegador não suporta câmera (getUserMedia)'; showToast('getUserMedia indisponível','err'); return; }
-      try{
-        if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
-        const constraints = {
-          video: {
-            facingMode: { exact: 'environment' }, // força traseira
-            width: { ideal: 1280 }, height: { ideal: 720 },
-            advanced: [{ facingMode: 'environment' }]
-          },
-          audio: false
-        };
-        statusEl.textContent='Solicitando câmera…';
-        const stream = await navigator.mediaDevices.getUserMedia(constraints).catch(async (e)=>{
-          // fallback se "exact" falhar em alguns aparelhos
-          if(e && e.name==='OverconstrainedError'){
-            return await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
-          }
-          throw e;
-        });
-        state.stream = stream; video.srcObject = stream; await video.play();
-        statusEl.textContent='Câmera traseira ligada';
-      } catch(e){
-        console.error('Camera error', e);
-        let msg='Erro ao abrir câmera';
-        if(e.name==='NotAllowedError') msg='Permissão negada. Libere a câmera nas configurações do site.';
-        else if(e.name==='NotFoundError') msg='Nenhuma câmera traseira encontrada.';
-        else if(e.name==='NotReadableError') msg='Câmera ocupada por outro app.';
-        else if(e.message && e.message.includes('Only secure origins')) msg='Precisa usar HTTPS (ou localhost).';
-        statusEl.textContent=msg; showToast(msg,'err');
+    // ====== Parser BRL tolerante (completa centavos) ======
+    function parsePrice(str){
+      if(!str) return NaN;
+      str = String(str).replace(/[^\d.,]/g,'').trim();
+      if(/,\s*$/.test(str)) str += '00';
+      if(/\.\s*$/.test(str)) str += '00';
+      if(str.includes('.') && str.includes(',')){
+        str = str.replace(/\./g,'').replace(',', '.');
+      } else if(str.includes(',')){
+        str = str.replace(',', '.');
+      }
+      const val = Number(str);
+      return isFinite(val) ? Number(val.toFixed(2)) : NaN;
+    }
+
+    // ====== Regex de preço abrangente (com/sem R$; 0–2 decimais) ======
+    const PRICE_REGEX = /(?:R\$\s*)?(\d{1,4}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)/g;
+
+    // ====== Estado ======
+    const state = {
+      running: false,
+      stream: null,
+      detections: new Map(), // valor -> {count, last}
+      lastAdded: { value: null, at: 0 },
+      items: [],
+      undoStack: [], // guarda últimos itens (máx 10)
+      total: 0
+    };
+
+    function addItem(value, source='OCR'){
+      const now = Date.now();
+      // Debounce: evita somar o MESMO valor em menos de 8s
+      if(state.lastAdded.value === value && (now - state.lastAdded.at) < 8000){
+        const last = $('#lastTag');
+        if(last) last.textContent = `Último: repetido ${fmtBRL.format(value)}`;
+        return;
+      }
+      const item = { id: now, value, source };
+      state.items.push(item);
+      state.undoStack.push(item);
+      if(state.undoStack.length > 10) state.undoStack.shift();
+      state.total += value;
+      state.lastAdded = { value, at: now };
+      renderList();
+      showToast(`${source === 'OCR' ? 'Detectado' : 'Adicionado'}: ${fmtBRL.format(value)}`, 'ok');
+    }
+
+    function undoLast(){
+      const last = state.undoStack.pop();
+      if(!last){
+        showToast('Nada para desfazer', 'warn'); return;
+      }
+      const idx = state.items.findIndex(it => it.id === last.id);
+      if(idx >= 0){
+        state.items.splice(idx,1);
+        state.total -= last.value;
+        renderList();
+        showToast(`Removido: ${fmtBRL.format(last.value)}`, 'warn');
       }
     }
 
-    // ===== OCR contínuo (sem botão de pausar) =====
-    const fpsTag = $('#fpsTag'), lastTag=$('#lastTag'), confTag=$('#confTag');
-    let worker, loopId=null, lastTick=0, ocrCountWindow=0, lastFPSUpdate=0;
-    async function initTesseract(){ if(worker) return worker; worker = await Tesseract.createWorker({ logger:m=>{} }); await worker.loadLanguage('eng'); await worker.initialize('eng'); await worker.setParameters({ tessedit_char_whitelist:'0123456789R$.,-' }); return worker; }
-
-    function getRoiCanvas(){
-      const vw=video.videoWidth||video.clientWidth; const vh=video.videoHeight||video.clientHeight; if(!vw||!vh) return null;
-      // ROI agora usa 55% x 22% do frame (mesmo da .box)
-      const rw=Math.round(vw*0.55), rh=Math.round(vh*0.22);
-      const rx=Math.round((vw-rw)/2), ry=Math.round((vh-rh)/2);
-      const scale=0.72; // ligeiramente maior que antes para melhorar legibilidade
-      const cw=Math.max(1,Math.round(rw*scale)), ch=Math.max(1,Math.round(rh*scale));
-      const c=getRoiCanvas._c||document.createElement('canvas'); const ctx=c.getContext('2d',{ willReadFrequently:true });
-      c.width=cw; c.height=ch; ctx.drawImage(video, rx, ry, rw, rh, 0, 0, cw, ch);
-      return c;
+    function clearList(){
+      state.items = [];
+      state.undoStack = [];
+      state.total = 0;
+      renderList();
+      showToast('Lista limpa', 'warn');
     }
 
+    function renderList(){
+      $('#totalLabel').textContent = fmtBRL.format(Math.max(0, state.total));
+      const list = $('#list');
+      list.innerHTML = '';
+      for(const it of state.items.slice().reverse()){
+        const row = document.createElement('div');
+        row.className = 'item';
+        row.innerHTML = `
+          <div>
+            <strong>${fmtBRL.format(it.value)}</strong>
+            <br><small>${it.source}</small>
+          </div>
+          <button class="btn err" data-id="${it.id}">x</button>
+        `;
+        row.querySelector('button').onclick = () => {
+          const id = it.id;
+          const idx = state.items.findIndex(o => o.id === id);
+          if(idx >= 0){
+            state.total -= state.items[idx].value;
+            state.items.splice(idx,1);
+            renderList();
+          }
+        };
+        list.appendChild(row);
+      }
+    }
+
+    // ====== Câmera e OCR ======
+    const video = $('#video');
+    const fpsTag = $('#fpsTag');
+    const lastTag = $('#lastTag');
+    const confTag = $('#confTag');
+    let worker;
+
+    async function initTesseract(){
+      if(worker) return worker;
+      worker = await Tesseract.createWorker({ logger: () => {} });
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
+      await worker.setParameters({
+        tessedit_char_whitelist: '0123456789R$.,-',
+        user_defined_dpi: '300',
+        tessedit_pageseg_mode: '7' // single line
+      });
+      return worker;
+    }
+
+    async function startCamera(){
+      try{
+        if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); state.stream=null; }
+        // Força traseira; fallback para ideal se o exato falhar
+        const primary = { video:{ facingMode:{ exact:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 }, advanced:[{ facingMode:'environment' }] }, audio:false };
+        const fallback = { video:{ facingMode:{ ideal:'environment' } }, audio:false };
+        const stream = await navigator.mediaDevices.getUserMedia(primary).catch(e=>{
+          if(e && e.name==='OverconstrainedError') return navigator.mediaDevices.getUserMedia(fallback);
+          throw e;
+        });
+        state.stream = stream;
+        video.srcObject = stream;
+        await video.play();
+        $('#status').textContent = 'Câmera traseira ligada';
+      } catch(e){
+        const msg =
+          e.name==='NotAllowedError' ? 'Permissão negada. Libere a câmera nas configurações do site.' :
+          e.name==='NotFoundError' ? 'Nenhuma câmera traseira encontrada.' :
+          e.name==='NotReadableError' ? 'Câmera ocupada por outro app.' :
+          (e.message && e.message.includes('Only secure origins')) ? 'Use HTTPS (ou localhost).' :
+          'Não foi possível acessar a câmera';
+        $('#status').textContent = msg;
+        showToast(msg, 'err');
+      }
+    }
+
+    // ROI real (menor que a visual): 55% x 22% central + escala 1.0
+    function getRoiImageData(){
+      const vw = video.videoWidth || video.clientWidth;
+      const vh = video.videoHeight || video.clientHeight;
+      if(!vw || !vh) return null;
+
+      const rw = Math.round(vw * 0.55);
+      const rh = Math.round(vh * 0.22);
+      const rx = Math.round((vw - rw)/2);
+      const ry = Math.round((vh - rh)/2);
+
+      const cw = Math.max(1, Math.round(rw * 1.0));
+      const ch = Math.max(1, Math.round(rh * 1.0));
+      const canvas = getRoiImageData._c || document.createElement('canvas');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      canvas.width = cw; canvas.height = ch;
+      ctx.drawImage(video, rx, ry, rw, rh, 0, 0, cw, ch);
+      return canvas;
+    }
+
+    // Confirmação: >=2 ocorrências em 2,5s OU confiança alta (>=70)
     function registerDetection(value){
-      const now=Date.now(); const key=value.toFixed(2);
-      const rec=state.detections.get(key)||{count:0,last:0}; rec.count++; rec.last=now; state.detections.set(key,rec);
-      for(const [k,r] of state.detections) if(now-r.last>2500) state.detections.delete(k);
-      if(rec.count>=2){ state.detections.clear(); addItem(value,'OCR'); }
+      const now = Date.now();
+      const key = value.toFixed(2);
+      const rec = state.detections.get(key) || { count:0, last:0 };
+      rec.count += 1;
+      rec.last = now;
+      state.detections.set(key, rec);
+
+      for(const [k, r] of state.detections){
+        if(now - r.last > 2500) state.detections.delete(k);
+      }
+      if(rec.count >= 2){
+        state.detections.clear();
+        addItem(value, 'OCR');
+      }
     }
+
+    let loopId = null, lastTick = 0, ocrPerSec = 0, ocrCountWindow = 0, lastFPSUpdate = 0;
 
     async function ocrLoop(){
       if(!state.running) return;
-      const now=performance.now(); if(now-lastTick<650){ loopId=requestAnimationFrame(ocrLoop); return; } lastTick=now;
+      const now = performance.now();
+      if(now - lastTick < 650){ // ~1.5x/s
+        loopId = requestAnimationFrame(ocrLoop);
+        return;
+      }
+      lastTick = now;
+
       try{
-        const canvas=getRoiCanvas();
+        const canvas = getRoiImageData();
         if(canvas){
           const { data } = await worker.recognize(canvas);
           ocrCountWindow++;
-          const text=(data.text||'').replace(/\s+/g,' ');
-          confTag.textContent='Conf: '+(data.confidence?Math.round(data.confidence):'—');
-          const found=new Set(); let m;
-          while((m=PRICE_REGEX.exec(text))!==null){
-            const raw=m[1]; const val=parsePrice(raw);
-            if(isFinite(val)&&val>=0.1&&val<=10000){ found.add(Number(val.toFixed(2))); }
+          $('#status').textContent = 'Lendo...';
+          const conf = data.confidence || 0;
+          confTag.textContent = 'Conf: ' + (conf ? Math.round(conf) : '—');
+
+          // Normalização: remove espaços entre dígitos/separadores
+          const rawText = (data.text || '').replace(/\s+/g,' ');
+          const text = rawText
+            .replace(/(?<=\d)\s+(?=[\d,.\-])/g, '')
+            .replace(/(?<=R)\s+\$(?=\s*\d)/g, '$');
+
+          // Extrai possíveis preços
+          const found = new Set();
+          let m;
+          while((m = PRICE_REGEX.exec(text)) !== null){
+            const val = parsePrice(m[1]);
+            if(isFinite(val) && val >= 0.01 && val <= 10000){
+              found.add(Number(val.toFixed(2)));
+            }
           }
-          lastTag.textContent='Último: '+(found.size? fmtBRL.format([...found][0]) : '—');
-          if(found.size){ const val=Math.min(...found); registerDetection(val); }
+
+          // HUD
+          lastTag.textContent = 'Último: ' + (found.size ? fmtBRL.format([...found][0]) : '—');
+
+          if(found.size){
+            const val = Math.min(...found);
+            if(conf >= 70) addItem(val,'OCR'); else registerDetection(val);
+          }
         }
-      }catch(e){ console.warn('OCR erro:', e); }
-      finally{
-        const t=performance.now(); if(t-lastFPSUpdate>1000){ fpsTag.textContent='OCR: '+ocrCountWindow+'/s'; ocrCountWindow=0; lastFPSUpdate=t; }
-        loopId=requestAnimationFrame(ocrLoop);
+      } catch(e){
+        console.warn('OCR erro:', e);
+      } finally{
+        const t = performance.now();
+        if(t - lastFPSUpdate > 1000){
+          ocrPerSec = ocrCountWindow;
+          ocrCountWindow = 0;
+          lastFPSUpdate = t;
+          fpsTag.textContent = `OCR: ${ocrPerSec}/s`;
+        }
+        loopId = requestAnimationFrame(ocrLoop);
       }
     }
 
-    // ===== Controles =====
+    // ====== Controles UI ======
     $('#btnStart').addEventListener('click', async ()=>{
       await startCamera();
       await initTesseract();
-      if(!state.running){ state.running=true; ocrLoop(); showToast('OCR iniciado'); }
+      if(!state.running){
+        state.running = true;
+        ocrLoop();
+        showToast('OCR iniciado');
+      }
     });
-    $('#btnAddManual').addEventListener('click', ()=>{ const v=parsePrice($('#manualInput').value.trim()); if(!isFinite(v)){ showToast('Valor inválido','err'); return; } addItem(v,'Manual'); $('#manualInput').value=''; });
+
+    // Mantém o design, mas não pausa o OCR
+    $('#btnToggle').addEventListener('click', ()=>{
+      showToast('OCR sempre ativo', 'warn');
+    });
+
+    $('#btnAddManual').addEventListener('click', ()=>{
+      const raw = $('#manualInput').value.trim();
+      const val = parsePrice(raw);
+      if(!isFinite(val)){ showToast('Valor inválido', 'err'); return; }
+      addItem(val, 'Manual');
+      $('#manualInput').value = '';
+    });
+
     $('#btnUndo').addEventListener('click', undoLast);
     $('#btnClear').addEventListener('click', clearList);
 
-    window.addEventListener('beforeunload', ()=>{ if(state.stream){ state.stream.getTracks().forEach(t=>t.stop()); } });
+    // Evita vazamento quando sair da página
+    window.addEventListener('beforeunload', ()=>{
+      if(state.stream){
+        state.stream.getTracks().forEach(t=>t.stop());
+      }
+    });
+
+    // Expor integração
+    window.SmartCartA3 = {
+      addFromOCR(price){ if(typeof price === 'number') addItem(price, 'OCR'); }
+    };
   </script>
 </body>
-</html>
+
 
