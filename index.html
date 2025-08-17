@@ -2,110 +2,107 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartCart OCR</title>
-  <!-- Libs originais (mantidas) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
-    :root{
-      --bg:#0f1115; --card:#171a21; --muted:#9aa4b2; --text:#e6e9ef; --accent:#2b90d9;
-      --ok:#3ccf91; --warn:#f4d35e; --err:#ff6b6b;
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #121212;
+      color: #FFFFFF;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--text);font:500 15px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
-    header{position:sticky;top:0;z-index:10;background:#0f1115cc;border-bottom:1px solid #20242e;backdrop-filter:blur(6px)}
-    .wrap{max-width:1100px;margin:0 auto;padding:12px 16px}
-    h1{font-size:18px;margin:0}
-
-    main{max-width:1100px;margin:14px auto;padding:0 10px;display:grid;grid-template-columns:1.6fr 1fr;gap:12px}
-    .card{background:var(--card);border:1px solid #222b36;border-radius:16px;padding:12px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .stack{display:flex;flex-direction:column;gap:10px}
-    .muted{color:var(--muted)}
-
-    .btn,.input{border:1px solid #2a2f3a;border-radius:12px;background:#0f131a;color:var(--text);padding:10px 12px}
-    .btn{cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-    .btn.primary{background:#172031;border-color:var(--accent)}
-    .btn.ghost{background:transparent}
-    .btn.ok{background:#0f1c18;border-color:#1b6f52}
-    .btn.warn{background:#211f11;border-color:#5e5321}
-    .btn.err{background:#231313;border-color:#5b2020}
-
-    .grid2{display:grid;grid-template-columns:1fr auto;gap:10px}
-
-    /* ===== Video + overlay ===== */
-    .videoWrap{position:relative;border-radius:14px;overflow:hidden;border:1px solid #2a2f3a;aspect-ratio:16/9;background:#0b0e13}
-    video{width:100%;height:100%;object-fit:cover;border-radius:14px}
-    #overlay{position:absolute;inset:0;pointer-events:none}
-
-    .hud{position:absolute;left:10px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap}
-    .tag{background:#0f131a;border:1px solid #2a2f3a;border-radius:10px;padding:6px 8px;font-size:12px;color:#c9d3e1}
-
-    /* ===== Coluna direita ===== */
-    #precos{display:flex;flex-direction:column;gap:10px;max-height:48vh;overflow:auto;padding-right:4px}
-    .preco-btn{font-size:1.2em;padding:10px 14px;background:#1a2a1c;color:#dcffe3;border:1px solid #2d5a36;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s ease}
-    .preco-btn:hover{transform:translateY(-1px)}
-    .preco-btn.pulse{transform:scale(1.06)}
-
-    #total{font-size:1.8em;color:#b9f3c7}
-
-    @media (max-width:900px){
-      main{grid-template-columns:1fr}
-      #precos{max-height:none}
-      .videoWrap{aspect-ratio:auto;height:56vh}
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    video, canvas {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 10px;
+    }
+    /* overlay cobre exatamente o vídeo exibido */
+    #overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+    #precos {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .preco-btn {
+      font-size: 1.4em;
+      padding: 12px 24px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+    .preco-btn:hover {
+      background-color: #66bb6a;
+      transform: scale(1.03);
+    }
+    .preco-btn.pulse {
+      transform: scale(1.1);
+    }
+    .btn-controle button {
+      background: #FF5252;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #total {
+      font-size: 2em;
+      margin-top: 20px;
+      color: #81C784;
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <h1>SmartCart OCR</h1>
+  <h1>SmartCart OCR</h1>
+  <div class="container">
+    <div style="position: relative; max-width: 400px;">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="overlay"></canvas>
     </div>
-  </header>
-
-  <main>
-    <!-- ESQUERDA: câmera e HUD -->
-    <section class="stack">
-      <div class="card stack">
-        <div class="videoWrap">
-          <video id="video" autoplay playsinline></video>
-          <canvas id="overlay"></canvas>
-          <div class="hud">
-            <span class="tag">Mire a etiqueta dentro do retângulo</span>
-          </div>
-        </div>
-        <div class="muted">A captura ocorre automaticamente a cada 2s. Use a câmera traseira e mantenha a etiqueta bem enquadrada.</div>
-      </div>
-    </section>
-
-    <!-- DIREITA: sugestões + controles + total -->
-    <aside class="card stack">
-      <strong>Sugestões de preço</strong>
+    <div>
       <div id="precos"></div>
-
-      <div class="grid2">
-        <input id="manualInput" class="input" type="number" step="0.01" placeholder="Digite o valor (ex: 10.50)" />
-        <button class="btn ok" onclick="adicionarManual()">➕ Adicionar</button>
+      <div style="margin-top: 15px;">
+        <input type="number" id="manualInput" step="0.01" placeholder="Digite o valor (ex: 10.50)" style="padding:10px; border-radius:6px; border:none; width:180px; font-size:1em;">
+        <button onclick="adicionarManual()" style="padding:10px 15px; border:none; background:#2196F3; color:white; border-radius:6px; font-size:1em; margin-left:5px;">➕ Adicionar</button>
       </div>
-
-      <div class="row">
-        <button class="btn err" onclick="limparSugestoes()">❌ Apagar sugestões</button>
-        <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer último</button>
+      <div class="btn-controle">
+        <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
+        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
       </div>
-
-      <div id="total" class="row" style="justify-content:space-between">
-        <span>Total:</span>
-        <span>R$ <span id="soma">0.00</span></span>
-      </div>
-    </aside>
-  </main>
+    </div>
+  </div>
+  <div id="total">Total: R$ <span id="soma">0.00</span></div>
 
   <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
-  <!-- ===== JS ORIGINAL (comportamento mantido) ===== -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
@@ -129,30 +126,51 @@
     let valoresAdicionados = [];
     let sugestoesFixas = false;
 
+    // ROI em coordenadas do overlay (já em pixels do canvas, com DPR)
+    const roi = { x:0, y:0, w:0, h:0 };
+
+    // Mantém o overlay exatamente do tamanho exibido do <video>
+    function syncOverlayToVideo(){
+      const rect = video.getBoundingClientRect();
+      const dpr  = window.devicePixelRatio || 1;
+      overlay.style.width  = rect.width + 'px';
+      overlay.style.height = rect.height + 'px';
+      overlay.width  = Math.round(rect.width  * dpr);
+      overlay.height = Math.round(rect.height * dpr);
+    }
+
     async function iniciarCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
         video.srcObject = stream;
         video.onloadedmetadata = () => {
-          overlay.width = video.videoWidth;
-          overlay.height = video.videoHeight;
+          syncOverlayToVideo();
+          desenharROI();
         };
+        window.addEventListener('resize', syncOverlayToVideo);
+        window.addEventListener('orientationchange', syncOverlayToVideo);
       } catch (err) {
         alert("Erro ao acessar a câmera: " + err);
       }
     }
 
     function desenharROI() {
+      syncOverlayToVideo(); // garante overlay alinhado ao vídeo exibido
       const ctx = overlay.getContext('2d');
-      overlay.width = video.videoWidth;
-      overlay.height = video.videoHeight;
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-      const w = overlay.width * 0.5;
+
+      // ROI: 50% largura x 20% altura, centralizada (mesma lógica original)
+      const w = overlay.width  * 0.5;
       const h = overlay.height * 0.2;
-      const x = (overlay.width - w) / 2;
+      const x = (overlay.width  - w) / 2;
       const y = (overlay.height - h) / 2;
+
+      // guarda ROI para mapear no recorte real
+      roi.x = x; roi.y = y; roi.w = w; roi.h = h;
+
+      const dpr = window.devicePixelRatio || 1;
       ctx.strokeStyle = 'red';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3 * dpr;
       ctx.strokeRect(x, y, w, h);
     }
 
@@ -177,7 +195,6 @@
         alert("Digite um valor válido.");
         return;
       }
-
       total += valor;
       valoresAdicionados.push(valor);
       somaSpan.innerText = total.toFixed(2);
@@ -207,10 +224,16 @@
       desenharROI();
 
       const ctx = canvas.getContext('2d');
-      const roiWidth = video.videoWidth * 0.5;
-      const roiHeight = video.videoHeight * 0.2;
-      const roiX = (video.videoWidth - roiWidth) / 2;
-      const roiY = (video.videoHeight - roiHeight) / 2;
+
+      // Mapear ROI do overlay (exibido) -> pixels reais do vídeo
+      const scaleX = video.videoWidth  / overlay.width;
+      const scaleY = video.videoHeight / overlay.height;
+
+      const roiWidth  = Math.round(roi.w * scaleX);
+      const roiHeight = Math.round(roi.h * scaleY);
+      const roiX      = Math.round(roi.x * scaleX);
+      const roiY      = Math.round(roi.y * scaleY);
+
       canvas.width = roiWidth;
       canvas.height = roiHeight;
       ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
