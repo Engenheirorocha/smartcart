@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartCart OCR — A4 (estável)</title>
+  <title>Smart Cart</title>
 
   <!-- Libs originais (inalteradas) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
@@ -40,14 +40,14 @@
       background-image: var(--bg-grad);
     }
 
-    /* Header */
+    /* Header (atualizado) */
     header{
       position: sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
       background: linear-gradient(180deg, rgba(8,12,28,0.7), rgba(8,12,28,0.25));
       border-bottom: 1px solid var(--card-border);
     }
-    .wrap{ max-width:1200px; margin:0 auto; padding:14px 18px; }
+    .wrap{ max-width:1200px; margin:0 auto; padding:14px 18px; display:flex; justify-content:center; }
     .brand{
       display:flex; align-items:center; gap:12px;
     }
@@ -55,7 +55,9 @@
       width:34px; height:34px; border-radius:9px;
       background: linear-gradient(135deg, #6ea8fe, #36d399);
       box-shadow: 0 6px 18px rgba(110,168,254,0.35);
+      display:grid; place-items:center;
     }
+    .logo svg{ width:20px; height:20px; stroke:#ffffff; }
     h1{ font-size:18px; font-weight:700; margin:0; letter-spacing:.2px }
 
     /* Layout principal */
@@ -164,6 +166,49 @@
       border-left:3px solid rgba(110,168,254,0.5);
       padding-left:10px;
     }
+
+    /* ===== Modal Histórico ===== */
+    .modal{
+      position: fixed; inset: 0; display:none;
+      align-items:center; justify-content:center;
+      background: rgba(5,8,20,0.6);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+    }
+    .modal.show{ display:flex }
+    .modal-card{
+      width:min(640px, 92vw);
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius:16px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+    }
+    .modal-head{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; padding:6px 6px 10px 6px; border-bottom: 1px dashed var(--card-border);
+    }
+    .modal-title{ font-weight:700; letter-spacing:.3px }
+    .modal-body{ max-height: 60vh; overflow:auto; padding-top:10px }
+    .hist{
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .hist-item{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px; border:1px solid var(--card-border);
+      border-radius:12px; background: rgba(8,12,28,0.55);
+    }
+    .hist-left{
+      display:flex; align-items:center; gap:10px;
+    }
+    .pill{
+      padding:4px 8px; border-radius:999px; font-size:12px;
+      border:1px solid var(--card-border);
+    }
+    .pill.add{ color:#d9ffe9; background: rgba(24,42,30,0.7); border-color: rgba(72,140,92,0.45) }
+    .pill.sub{ color:#ffe0e0; background: rgba(52,24,24,0.6); border-color: rgba(164,74,74,0.45) }
+    .hist-val{ font-weight:700 }
+    .hist-time{ color: var(--muted); font-size:12px }
   </style>
 </head>
 <body>
@@ -171,8 +216,16 @@
   <header>
     <div class="wrap">
       <div class="brand">
-        <div class="logo"></div>
-        <h1>SmartCart OCR</h1>
+        <div class="logo" aria-hidden="true">
+          <!-- Ícone de carrinho -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Carrinho de compras">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </div>
+        <h1>Smart Cart</h1>
       </div>
     </div>
   </header>
@@ -206,6 +259,7 @@
       <div class="row">
         <button class="btn err" onclick="limparSugestoes()">❌ Apagar sugestões</button>
         <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer último</button>
+        <button class="btn" onclick="abrirHistorico(event)">📜 Histórico</button>
       </div>
 
       <div id="total">
@@ -214,6 +268,19 @@
       </div>
     </aside>
   </main>
+
+  <!-- Modal Histórico -->
+  <div id="historicoModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="histTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title" id="histTitle">Histórico de lançamentos</div>
+        <button class="btn" onclick="fecharHistorico()">✖ Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div id="historicoLista" class="hist"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- Audio -->
   <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
@@ -236,6 +303,12 @@
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
     const bip = document.getElementById('bip-audio');
+
+    /* ===== Histórico (memória local da sessão) ===== */
+    const historico = []; // {tipo:'add'|'sub', valor:number, data:Date, total:number}
+    function registrar(tipo, valor){
+      historico.unshift({ tipo, valor, data: new Date(), total: total });
+    }
 
     let total = 0;
     let canvas = document.createElement('canvas');
@@ -293,141 +366,126 @@
         try {
           const stream = await navigator.mediaDevices.getUserMedia(opt);
           video.srcObject = stream;
-          video.onloadedmetadata = () => {
-            syncOverlayToVideo();
-            desenharROI();
-          };
+          video.onloadedmetadata = () => { syncOverlayToVideo(); desenharROI(); };
           window.addEventListener('resize', syncOverlayToVideo);
           window.addEventListener('orientationchange', syncOverlayToVideo);
-          ok = true;
-          break;
+          ok = true; break;
         } catch (e) { lastErr = e; }
       }
-      if (!ok) {
-        alert("Erro ao acessar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
-      }
+      if (!ok) alert("Erro ao acessar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
     }
 
     function adicionarPreco(valor, btn) {
       total += valor;
       valoresAdicionados.push(valor);
       somaSpan.innerText = total.toFixed(2);
-      limparSugestoes();
-      sugestoesFixas = false; // compat
-      bip.play();
-      if (btn) {
-        btn.classList.add('pulse');
-        setTimeout(() => btn.classList.remove('pulse'), 300);
-      }
+      limparSugestoes(); sugestoesFixas = false; bip.play();
+      if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
+      registrar('add', valor);
       capturarEEnviarImagem(valor);
     }
 
     function adicionarManual() {
       const input = document.getElementById('manualInput');
       const valor = parseFloat((input.value || '').replace(',', '.'));
-      if (isNaN(valor) || valor <= 0) {
-        alert("Digite um valor válido.");
-        input.value = '';
-        input.focus();
-        return;
-      }
-      total += valor;
-      valoresAdicionados.push(valor);
+      if (isNaN(valor) || valor <= 0) { alert("Digite um valor válido."); input.value=''; input.focus(); return; }
+      total += valor; valoresAdicionados.push(valor);
       somaSpan.innerText = total.toFixed(2);
-      limparSugestoes();
-      sugestoesFixas = false;
-      bip.play();
-      input.value = '';
-      input.focus();
+      limparSugestoes(); sugestoesFixas = false; bip.play();
+      registrar('add', valor);
+      input.value=''; input.focus();
     }
 
-    /* ===== Diminuir valor manual (agora limpa o campo também) ===== */
     function diminuirManual() {
       const input = document.getElementById('manualInput');
       const valor = parseFloat((input.value || '').replace(',', '.'));
-      if (isNaN(valor) || valor <= 0) {
-        alert("Digite um valor válido.");
-        input.value = '';
-        input.focus();
-        return;
-      }
-      total -= valor;
-      if (total < 0) total = 0; // protege total de negativo
-      valoresAdicionados.push(-valor); // mantém compatibilidade com desfazer
+      if (isNaN(valor) || valor <= 0) { alert("Digite um valor válido."); input.value=''; input.focus(); return; }
+      total -= valor; if (total < 0) total = 0;
+      valoresAdicionados.push(-valor);
       somaSpan.innerText = total.toFixed(2);
-      limparSugestoes();
-      sugestoesFixas = false;
-      bip.play();
-
-      input.value = '';   // limpa após subtrair
-      input.focus();
+      limparSugestoes(); sugestoesFixas = false; bip.play();
+      registrar('sub', valor);
+      input.value=''; input.focus();
     }
 
-    /* ===== Zerar Total ===== */
-    function zerarTotal() {
-      total = 0;
-      valoresAdicionados = []; // nova sessão
-      somaSpan.innerText = total.toFixed(2);
-      bip.play();
-    }
-
+    function zerarTotal() { total = 0; valoresAdicionados = []; somaSpan.innerText = total.toFixed(2); bip.play(); }
     function desfazerUltimo() {
       if (valoresAdicionados.length > 0) {
         const valor = valoresAdicionados.pop();
-        total -= valor; // se negativo, desfaz subtração
-        if (total < 0) total = 0;
+        total -= valor; if (total < 0) total = 0;
         somaSpan.innerText = total.toFixed(2);
       }
     }
+    function limparSugestoes() { precosDiv.innerHTML = ''; sugestoesFixas = false; }
 
-    function limparSugestoes() {
-      precosDiv.innerHTML = '';
-      sugestoesFixas = false;
+    /* ===== Histórico UI (fix do clique) ===== */
+    function abrirHistorico(e){
+      if (e) e.stopPropagation();
+      const el = document.getElementById('historicoModal');
+      const lista = document.getElementById('historicoLista');
+      lista.innerHTML = '';
+
+      if (historico.length === 0){
+        const vazio = document.createElement('div');
+        vazio.className = 'hist-item';
+        vazio.innerHTML = '<span class="hist-val">Nenhum lançamento ainda</span><span class="hist-time">—</span>';
+        lista.appendChild(vazio);
+      } else {
+        historico.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'hist-item';
+          const tipoPill = `<span class="pill ${item.tipo === 'add' ? 'add' : 'sub'}">${item.tipo === 'add' ? 'Adicionar' : 'Diminuir'}</span>`;
+          const valorFmt = (item.tipo === 'add' ? '+' : '-') + ' R$ ' + item.valor.toFixed(2);
+          const dateFmt = item.data.toLocaleString('pt-BR');
+          row.innerHTML = `
+            <div class="hist-left">
+              ${tipoPill}
+              <span class="hist-val">${valorFmt}</span>
+            </div>
+            <div class="hist-right">
+              <div class="hist-time">${dateFmt}</div>
+              <div class="hist-time">Total após: R$ ${item.total.toFixed(2)}</div>
+            </div>
+          `;
+          lista.appendChild(row);
+        });
+      }
+      el.classList.add('show');
     }
+    function fecharHistorico(){ document.getElementById('historicoModal').classList.remove('show'); }
+    const modalEl = document.getElementById('historicoModal');
+    modalEl.addEventListener('click', (e)=>{ if (e.target === modalEl) fecharHistorico(); });
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') fecharHistorico(); });
 
+    /* ===== OCR ===== */
     async function capturarImagemEProcessar() {
       if (isProcessing || video.videoWidth === 0) return;
-      isProcessing = true;
-      desenharROI();
-
+      isProcessing = true; desenharROI();
       const ctx = canvas.getContext('2d');
 
-      // Mapear ROI (overlay exibido) -> pixels reais do vídeo
       const scaleX = video.videoWidth  / overlay.width;
       const scaleY = video.videoHeight / overlay.height;
-
       const roiWidth  = Math.round(roi.w * scaleX);
       const roiHeight = Math.round(roi.h * scaleY);
       const roiX      = Math.round(roi.x * scaleX);
       const roiY      = Math.round(roi.y * scaleY);
 
-      // Downscale para acelerar OCR (máximo 600px de largura)
       const MAX_W = 600;
-      let dw = roiWidth;
-      let dh = roiHeight;
-      if (dw > MAX_W) {
-        const s = MAX_W / dw;
-        dw = Math.max(1, Math.round(dw * s));
-        dh = Math.max(1, Math.round(dh * s));
-      }
+      let dw = roiWidth, dh = roiHeight;
+      if (dw > MAX_W) { const s = MAX_W / dw; dw = Math.max(1, Math.round(dw*s)); dh = Math.max(1, Math.round(dh*s)); }
+      canvas.width = dw; canvas.height = dh;
 
-      canvas.width = dw;
-      canvas.height = dh;
-
-      // leve pré-processamento (grayscale + contraste)
       if (ctx.filter !== undefined) ctx.filter = 'grayscale(1) contrast(115%)';
       ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, dw, dh);
       if (ctx.filter !== undefined) ctx.filter = 'none';
 
       try {
-        // REGEX ORIGINAL (somente com centavos)
-        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        const { data: { text} } = await Tesseract.recognize(canvas, 'eng');
         const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
         if (matches) {
           const now = Date.now();
           if (now - lastSuggestionsAt >= SUGGESTIONS_COOLDOWN) {
             lastSuggestionsAt = now;
-
             limparSugestoes();
             matches.slice(0, 3).forEach(str => {
               const valor = parseFloat(str.replace(',', '.'));
@@ -441,11 +499,8 @@
             });
           }
         }
-      } catch (e) {
-        console.warn('OCR erro:', e);
-      } finally {
-        isProcessing = false;
-      }
+      } catch (e) { console.warn('OCR erro:', e); }
+      finally { isProcessing = false; }
     }
 
     async function capturarEEnviarImagem(valor) {
@@ -461,15 +516,10 @@
             valor: valor,
             imagem: imageData,
             datahora: new Date().toISOString(),
-            localizacao: {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            }
+            localizacao: { lat: position.coords.latitude, lng: position.coords.longitude }
           });
         });
-      } catch (e) {
-        console.warn('snapshot/geo erro:', e);
-      }
+      } catch (e) { console.warn('snapshot/geo erro:', e); }
     }
 
     // Intervalo + inicialização da câmera garantidos
@@ -478,6 +528,7 @@
   </script>
 </body>
 </html>
+
 
 
 
