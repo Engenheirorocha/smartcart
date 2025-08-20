@@ -188,7 +188,7 @@
           <span class="tag">Mire a etiqueta dentro do retângulo (50% × 20%)</span>
         </div>
       </div>
-      <div class="tip">A leitura ocorre automaticamente a cada 2 segundos. Use a câmera traseira e mantenha a etiqueta bem enquadrada.</div>
+      <div class="tip">A leitura ocorre automaticamente ~a cada 1,2s. Use a câmera traseira e mantenha a etiqueta bem enquadrada.</div>
     </section>
 
     <!-- Direita: sugestões + controles + total -->
@@ -216,7 +216,7 @@
   <!-- Audio -->
   <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
-  <!-- JS (funcionamento original preservado, com centralização da ROI) -->
+  <!-- JS -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
@@ -234,11 +234,16 @@
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
     const bip = document.getElementById('bip-audio');
+
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
     let valoresAdicionados = [];
-    let sugestoesFixas = false;
+    let sugestoesFixas = false; // mantém por compat, mas não trava mais o OCR
+
+    // NOVO: cooldown para estabilidade das sugestões
+    let lastSuggestionsAt = 0;
+    const SUGGESTIONS_COOLDOWN = 1200; // ms
 
     // ROI em coords do overlay (canvas)
     const roi = { x:0, y:0, w:0, h:0 };
@@ -272,7 +277,7 @@
       const ctx = overlay.getContext('2d');
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-      // ROI (a MESMA da sua lógica original): 50% x 20%, centralizada
+      // ROI 50% x 20%, centralizada
       const w = overlay.width  * 0.5;
       const h = overlay.height * 0.2;
       const x = (overlay.width  - w) / 2;
@@ -283,11 +288,9 @@
       const dpr = window.devicePixelRatio || 1;
       ctx.strokeStyle = 'rgba(255,255,255,0.95)';
       ctx.lineWidth = 3 * dpr;
-      // leve brilho externo
       ctx.shadowColor = 'rgba(110,168,254,0.65)';
       ctx.shadowBlur = 8 * dpr;
       ctx.strokeRect(x, y, w, h);
-      // limpa shadow para próximos desenhos
       ctx.shadowBlur = 0;
     }
 
@@ -296,7 +299,7 @@
       valoresAdicionados.push(valor);
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
-      sugestoesFixas = false;
+      sugestoesFixas = false; // compat
       bip.play();
       if (btn) {
         btn.classList.add('pulse');
@@ -336,7 +339,8 @@
     }
 
     async function capturarImagemEProcessar() {
-      if (isProcessing || video.videoWidth === 0 || sugestoesFixas) return;
+      // REMOVIDO: trava por sugestoesFixas
+      if (isProcessing || video.videoWidth === 0) return;
       isProcessing = true;
       desenharROI();
 
@@ -351,27 +355,52 @@
       const roiX      = Math.round(roi.x * scaleX);
       const roiY      = Math.round(roi.y * scaleY);
 
-      canvas.width = roiWidth;
-      canvas.height = roiHeight;
-      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, roiWidth, roiHeight);
-
-      const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
-      const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
-      if (matches) {
-        limparSugestoes();
-        matches.slice(0, 3).forEach(str => {
-          const valor = parseFloat(str.replace(',', '.'));
-          if (!isNaN(valor)) {
-            const btn = document.createElement('div');
-            btn.className = 'preco-btn';
-            btn.innerText = `R$ ${valor.toFixed(2)}`;
-            btn.onclick = () => adicionarPreco(valor, btn);
-            precosDiv.appendChild(btn);
-          }
-        });
-        sugestoesFixas = true;
+      // NOVO: Downscale para acelerar OCR (máximo 600px de largura)
+      const MAX_W = 600;
+      let dw = roiWidth;
+      let dh = roiHeight;
+      if (dw > MAX_W) {
+        const s = MAX_W / dw;
+        dw = Math.max(1, Math.round(dw * s));
+        dh = Math.max(1, Math.round(dh * s));
       }
-      isProcessing = false;
+
+      canvas.width = dw;
+      canvas.height = dh;
+
+      // NOVO: leve pré-processamento (grayscale + contraste)
+      if (ctx.filter !== undefined) ctx.filter = 'grayscale(1) contrast(115%)';
+      ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, dw, dh);
+      if (ctx.filter !== undefined) ctx.filter = 'none';
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
+        const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
+        if (matches) {
+          const now = Date.now();
+          if (now - lastSuggestionsAt >= SUGGESTIONS_COOLDOWN) {
+            lastSuggestionsAt = now;
+
+            limparSugestoes();
+            matches.slice(0, 3).forEach(str => {
+              const valor = parseFloat(str.replace(',', '.'));
+              if (!isNaN(valor)) {
+                const btn = document.createElement('div');
+                btn.className = 'preco-btn';
+                btn.innerText = `R$ ${valor.toFixed(2)}`;
+                btn.onclick = () => adicionarPreco(valor, btn);
+                precosDiv.appendChild(btn);
+              }
+            });
+
+            // REMOVIDO: sugestoesFixas = true;
+          }
+        }
+      } catch (e) {
+        console.warn('OCR erro:', e);
+      } finally {
+        isProcessing = false;
+      }
     }
 
     async function capturarEEnviarImagem(valor) {
@@ -394,11 +423,13 @@
       });
     }
 
-    setInterval(capturarImagemEProcessar, 2000);
+    // NOVO: intervalo mais ágil (1,2s)
+    setInterval(capturarImagemEProcessar, 1200);
     iniciarCamera();
   </script>
 </body>
 </html>
+
 
 
 
