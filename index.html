@@ -4,105 +4,219 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartCart OCR</title>
+
+  <!-- Libs originais (inalteradas) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+  <!-- Fonte moderna -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
   <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-      padding: 20px;
-      background: #121212;
-      color: #FFFFFF;
+    :root{
+      --bg:#0b1020;
+      --bg-grad: radial-gradient(1200px 600px at 10% 10%, #111a3b 0%, transparent 60%),
+                 radial-gradient(900px 500px at 90% 20%, #0c2a3d 0%, transparent 55%),
+                 radial-gradient(1100px 700px at 50% 120%, #1a1b32 0%, #0b1020 60%);
+      --card: rgba(22,26,48,0.65);
+      --card-border: rgba(117,133,187,0.15);
+      --text:#e7edff;
+      --muted:#a9b4d0;
+      --accent:#6ea8fe;
+      --ok:#36d399;
+      --warn:#f6c263;
+      --err:#ff7c7c;
+      --shadow: 0 10px 30px rgba(8,13,33,0.5), inset 0 1px rgba(255,255,255,0.05);
     }
-    .container {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 20px;
+
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0;
+      color:var(--text);
+      font: 500 15px/1.55 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: var(--bg);
+      background-image: var(--bg-grad);
     }
-    video, canvas {
-      width: 100%;
-      max-width: 400px;
-      border-radius: 10px;
+
+    /* Header */
+    header{
+      position: sticky; top:0; z-index:10;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(180deg, rgba(8,12,28,0.7), rgba(8,12,28,0.25));
+      border-bottom: 1px solid var(--card-border);
     }
-    /* overlay cobre exatamente o vídeo exibido */
-    #overlay {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
+    .wrap{ max-width:1200px; margin:0 auto; padding:14px 18px; }
+    .brand{
+      display:flex; align-items:center; gap:12px;
     }
-    #precos {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      max-height: 500px;
-      overflow-y: auto;
+    .logo{
+      width:34px; height:34px; border-radius:9px;
+      background: linear-gradient(135deg, #6ea8fe, #36d399);
+      box-shadow: 0 6px 18px rgba(110,168,254,0.35);
     }
-    .preco-btn {
-      font-size: 1.4em;
-      padding: 12px 24px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+    h1{ font-size:18px; font-weight:700; margin:0; letter-spacing:.2px }
+
+    /* Layout principal */
+    main{
+      max-width:1200px; margin:18px auto; padding:0 14px;
+      display:grid; grid-template-columns:1.6fr 1fr; gap:16px;
+    }
+    @media (max-width:980px){ main{ grid-template-columns:1fr } }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .stack{ display:flex; flex-direction:column; gap:12px }
+
+    /* Câmera */
+    .videoWrap{
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.2s ease;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--card-border);
+      background: rgba(0,0,0,0.35);
+      aspect-ratio: 16/9;
+      box-shadow: var(--shadow);
     }
-    .preco-btn:hover {
-      background-color: #66bb6a;
-      transform: scale(1.03);
+    @media (max-width:980px){ .videoWrap{ aspect-ratio:auto; height:56vh } }
+
+    video{
+      width:100%; height:100%; object-fit:cover; display:block;
     }
-    .preco-btn.pulse {
-      transform: scale(1.1);
+    #overlay{
+      position:absolute; inset:0; width:100%; height:100%;
+      pointer-events:none;
     }
-    .btn-controle button {
-      background: #FF5252;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-size: 1em;
-      cursor: pointer;
-      margin: 5px;
+
+    /* HUD */
+    .hud{
+      position:absolute; left:10px; bottom:10px; display:flex; gap:8px; flex-wrap:wrap;
     }
-    #total {
-      font-size: 2em;
-      margin-top: 20px;
-      color: #81C784;
+    .tag{
+      background: rgba(12,18,40,0.7);
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+      padding: 6px 8px; font-size:12px; border-radius: 10px;
+      backdrop-filter: blur(6px);
+    }
+
+    /* Coluna direita */
+    .title{ font-size:13px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase }
+    #precos{
+      display:flex; flex-direction:column; gap:10px;
+      max-height:48vh; overflow:auto; padding-right:4px;
+    }
+    .preco-btn{
+      font-size:1.1em; font-weight:600;
+      padding:12px 14px;
+      background: linear-gradient(180deg, rgba(24,42,30,0.9), rgba(18,33,24,0.9));
+      color:#d9ffe9;
+      border:1px solid rgba(72,140,92,0.45);
+      border-radius:12px;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      box-shadow: 0 6px 16px rgba(7,20,12,0.35);
+    }
+    .preco-btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 24px rgba(7,20,12,0.45); border-color: rgba(72,140,92,0.7) }
+    .preco-btn.pulse{ transform: scale(1.04) }
+
+    /* Inputs/botões */
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+    .input{
+      border:1px solid var(--card-border);
+      background: rgba(8,12,28,0.6);
+      color:var(--text);
+      padding: 10px 12px;
+      border-radius:12px;
+      outline:none;
+    }
+    .btn{
+      border:1px solid var(--card-border);
+      background: rgba(8,12,28,0.6);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .btn:hover{ transform: translateY(-1px) }
+    .btn.ok{ background: linear-gradient(180deg, rgba(16,36,28,0.9), rgba(14,30,24,0.9)); border-color: rgba(72,140,92,0.45) }
+    .btn.warn{ background: linear-gradient(180deg, rgba(50,40,18,0.9), rgba(38,28,10,0.9)); border-color: rgba(181,148,75,0.45) }
+    .btn.err{ background: linear-gradient(180deg, rgba(52,24,24,0.9), rgba(36,16,16,0.9)); border-color: rgba(164,74,74,0.45) }
+
+    /* Total */
+    #total{
+      font-size: 1.8em; color:#c5f8d7;
+      display:flex; align-items:center; justify-content:space-between;
+      padding-top:8px; margin-top:6px; border-top:1px dashed var(--card-border);
+    }
+
+    /* Tip */
+    .tip{
+      font-size:13px; color:var(--muted);
+      border-left:3px solid rgba(110,168,254,0.5);
+      padding-left:10px;
     }
   </style>
 </head>
 <body>
-  <h1>SmartCart OCR</h1>
-  <div class="container">
-    <div style="position: relative; max-width: 400px;">
-      <video id="video" autoplay playsinline></video>
-      <canvas id="overlay"></canvas>
-    </div>
-    <div>
-      <div id="precos"></div>
-      <div style="margin-top: 15px;">
-        <input type="number" id="manualInput" step="0.01" placeholder="Digite o valor (ex: 10.50)" style="padding:10px; border-radius:6px; border:none; width:180px; font-size:1em;">
-        <button onclick="adicionarManual()" style="padding:10px 15px; border:none; background:#2196F3; color:white; border-radius:6px; font-size:1em; margin-left:5px;">➕ Adicionar</button>
-      </div>
-      <div class="btn-controle">
-        <button onclick="limparSugestoes()">❌ Apagar sugestões</button>
-        <button onclick="desfazerUltimo()">↩️ Desfazer último</button>
+  <!-- Header -->
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo"></div>
+        <h1>SmartCart OCR</h1>
       </div>
     </div>
-  </div>
-  <div id="total">Total: R$ <span id="soma">0.00</span></div>
+  </header>
 
+  <!-- Main -->
+  <main>
+    <!-- Esquerda: câmera + HUD -->
+    <section class="card stack">
+      <div class="videoWrap">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+        <div class="hud">
+          <span class="tag">Mire a etiqueta dentro do retângulo (50% × 20%)</span>
+        </div>
+      </div>
+      <div class="tip">A leitura ocorre automaticamente a cada 2 segundos. Use a câmera traseira e mantenha a etiqueta bem enquadrada.</div>
+    </section>
+
+    <!-- Direita: sugestões + controles + total -->
+    <aside class="card stack">
+      <div class="title">Sugestões de preço</div>
+      <div id="precos"></div>
+
+      <div class="row">
+        <input id="manualInput" class="input" type="number" step="0.01" placeholder="Digite o valor (ex: 10.50)">
+        <button class="btn ok" onclick="adicionarManual()">➕ Adicionar</button>
+      </div>
+
+      <div class="row">
+        <button class="btn err" onclick="limparSugestoes()">❌ Apagar sugestões</button>
+        <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer último</button>
+      </div>
+
+      <div id="total">
+        <span>Total</span>
+        <span>R$ <span id="soma">0.00</span></span>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Audio -->
   <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
+  <!-- JS (funcionamento original preservado, com centralização da ROI) -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
@@ -126,10 +240,9 @@
     let valoresAdicionados = [];
     let sugestoesFixas = false;
 
-    // ROI em coordenadas do overlay (já em pixels do canvas, com DPR)
+    // ROI em coords do overlay (canvas)
     const roi = { x:0, y:0, w:0, h:0 };
 
-    // Mantém o overlay exatamente do tamanho exibido do <video>
     function syncOverlayToVideo(){
       const rect = video.getBoundingClientRect();
       const dpr  = window.devicePixelRatio || 1;
@@ -155,23 +268,27 @@
     }
 
     function desenharROI() {
-      syncOverlayToVideo(); // garante overlay alinhado ao vídeo exibido
+      syncOverlayToVideo();
       const ctx = overlay.getContext('2d');
       ctx.clearRect(0, 0, overlay.width, overlay.height);
 
-      // ROI: 50% largura x 20% altura, centralizada (mesma lógica original)
+      // ROI (a MESMA da sua lógica original): 50% x 20%, centralizada
       const w = overlay.width  * 0.5;
       const h = overlay.height * 0.2;
       const x = (overlay.width  - w) / 2;
       const y = (overlay.height - h) / 2;
 
-      // guarda ROI para mapear no recorte real
       roi.x = x; roi.y = y; roi.w = w; roi.h = h;
 
       const dpr = window.devicePixelRatio || 1;
-      ctx.strokeStyle = 'red';
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
       ctx.lineWidth = 3 * dpr;
+      // leve brilho externo
+      ctx.shadowColor = 'rgba(110,168,254,0.65)';
+      ctx.shadowBlur = 8 * dpr;
       ctx.strokeRect(x, y, w, h);
+      // limpa shadow para próximos desenhos
+      ctx.shadowBlur = 0;
     }
 
     function adicionarPreco(valor, btn) {
@@ -225,7 +342,7 @@
 
       const ctx = canvas.getContext('2d');
 
-      // Mapear ROI do overlay (exibido) -> pixels reais do vídeo
+      // Mapear ROI (overlay exibido) -> pixels reais do vídeo
       const scaleX = video.videoWidth  / overlay.width;
       const scaleY = video.videoHeight / overlay.height;
 
@@ -282,6 +399,7 @@
   </script>
 </body>
 </html>
+
 
 
 
