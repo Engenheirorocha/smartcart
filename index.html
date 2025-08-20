@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartCart OCR</title>
+  <title>SmartCart OCR — A4 (estável)</title>
 
   <!-- Libs originais (inalteradas) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
@@ -199,7 +199,6 @@
       <div class="row">
         <input id="manualInput" class="input" type="number" step="0.01" placeholder="Digite o valor (ex: 10.50)">
         <button class="btn ok" onclick="adicionarManual()">➕ Adicionar</button>
-        <!-- NOVOS BOTÕES (sem alterar o layout existente) -->
         <button class="btn warn" onclick="diminuirManual()">➖ Diminuir</button>
         <button class="btn err" onclick="zerarTotal()">🧹 Zerar Total</button>
       </div>
@@ -242,9 +241,9 @@
     let canvas = document.createElement('canvas');
     let isProcessing = false;
     let valoresAdicionados = [];
-    let sugestoesFixas = false; // mantém por compat, mas não trava mais o OCR
+    let sugestoesFixas = false; // compat
 
-    // NOVO: cooldown para estabilidade das sugestões
+    // Cooldown para estabilidade das sugestões
     let lastSuggestionsAt = 0;
     const SUGGESTIONS_COOLDOWN = 1200; // ms
 
@@ -258,21 +257,6 @@
       overlay.style.height = rect.height + 'px';
       overlay.width  = Math.round(rect.width  * dpr);
       overlay.height = Math.round(rect.height * dpr);
-    }
-
-    async function iniciarCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } }, audio: false });
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          syncOverlayToVideo();
-          desenharROI();
-        };
-        window.addEventListener('resize', syncOverlayToVideo);
-        window.addEventListener('orientationchange', syncOverlayToVideo);
-      } catch (err) {
-        alert("Erro ao acessar a câmera: " + err);
-      }
     }
 
     function desenharROI() {
@@ -297,6 +281,33 @@
       ctx.shadowBlur = 0;
     }
 
+    /* ====== CÂMERA: robusto com fallback ====== */
+    async function iniciarCamera() {
+      const modos = [
+        { video: { facingMode: { exact: 'environment' } }, audio: false },
+        { video: { facingMode: { ideal: 'environment' } }, audio: false },
+        { video: true, audio: false }
+      ];
+      let ok = false, lastErr = null;
+      for (const opt of modos) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(opt);
+          video.srcObject = stream;
+          video.onloadedmetadata = () => {
+            syncOverlayToVideo();
+            desenharROI();
+          };
+          window.addEventListener('resize', syncOverlayToVideo);
+          window.addEventListener('orientationchange', syncOverlayToVideo);
+          ok = true;
+          break;
+        } catch (e) { lastErr = e; }
+      }
+      if (!ok) {
+        alert("Erro ao acessar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
+      }
+    }
+
     function adicionarPreco(valor, btn) {
       total += valor;
       valoresAdicionados.push(valor);
@@ -316,6 +327,8 @@
       const valor = parseFloat((input.value || '').replace(',', '.'));
       if (isNaN(valor) || valor <= 0) {
         alert("Digite um valor válido.");
+        input.value = '';
+        input.focus();
         return;
       }
       total += valor;
@@ -325,30 +338,35 @@
       sugestoesFixas = false;
       bip.play();
       input.value = '';
+      input.focus();
     }
 
-    /* ===== NOVO: Diminuir valor manual ===== */
+    /* ===== Diminuir valor manual (agora limpa o campo também) ===== */
     function diminuirManual() {
       const input = document.getElementById('manualInput');
       const valor = parseFloat((input.value || '').replace(',', '.'));
       if (isNaN(valor) || valor <= 0) {
         alert("Digite um valor válido.");
+        input.value = '';
+        input.focus();
         return;
       }
       total -= valor;
-      if (total < 0) total = 0; // protege total de ficar negativo
+      if (total < 0) total = 0; // protege total de negativo
       valoresAdicionados.push(-valor); // mantém compatibilidade com desfazer
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes();
       sugestoesFixas = false;
       bip.play();
-      // não limpa o input para o usuário poder ajustar rapidamente se quiser
+
+      input.value = '';   // limpa após subtrair
+      input.focus();
     }
 
-    /* ===== NOVO: Zerar Total ===== */
+    /* ===== Zerar Total ===== */
     function zerarTotal() {
       total = 0;
-      valoresAdicionados = []; // inicia nova “sessão” de somatório
+      valoresAdicionados = []; // nova sessão
       somaSpan.innerText = total.toFixed(2);
       bip.play();
     }
@@ -356,7 +374,7 @@
     function desfazerUltimo() {
       if (valoresAdicionados.length > 0) {
         const valor = valoresAdicionados.pop();
-        total -= valor; // se for negativo, desfaz a subtração (soma)
+        total -= valor; // se negativo, desfaz subtração
         if (total < 0) total = 0;
         somaSpan.innerText = total.toFixed(2);
       }
@@ -368,7 +386,6 @@
     }
 
     async function capturarImagemEProcessar() {
-      // REMOVIDO: trava por sugestoesFixas
       if (isProcessing || video.videoWidth === 0) return;
       isProcessing = true;
       desenharROI();
@@ -384,7 +401,7 @@
       const roiX      = Math.round(roi.x * scaleX);
       const roiY      = Math.round(roi.y * scaleY);
 
-      // NOVO: Downscale para acelerar OCR (máximo 600px de largura)
+      // Downscale para acelerar OCR (máximo 600px de largura)
       const MAX_W = 600;
       let dw = roiWidth;
       let dh = roiHeight;
@@ -397,12 +414,13 @@
       canvas.width = dw;
       canvas.height = dh;
 
-      // NOVO: leve pré-processamento (grayscale + contraste)
+      // leve pré-processamento (grayscale + contraste)
       if (ctx.filter !== undefined) ctx.filter = 'grayscale(1) contrast(115%)';
       ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, dw, dh);
       if (ctx.filter !== undefined) ctx.filter = 'none';
 
       try {
+        // REGEX ORIGINAL (somente com centavos)
         const { data: { text } } = await Tesseract.recognize(canvas, 'eng');
         const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
         if (matches) {
@@ -413,7 +431,7 @@
             limparSugestoes();
             matches.slice(0, 3).forEach(str => {
               const valor = parseFloat(str.replace(',', '.'));
-              if (!isNaN(valor)) {
+              if (!isNaN(valor) && valor > 0) {
                 const btn = document.createElement('div');
                 btn.className = 'preco-btn';
                 btn.innerText = `R$ ${valor.toFixed(2)}`;
@@ -421,8 +439,6 @@
                 precosDiv.appendChild(btn);
               }
             });
-
-            // REMOVIDO: sugestoesFixas = true;
           }
         }
       } catch (e) {
@@ -433,26 +449,30 @@
     }
 
     async function capturarEEnviarImagem(valor) {
-      const snapshotCanvas = document.createElement('canvas');
-      snapshotCanvas.width = video.videoWidth;
-      snapshotCanvas.height = video.videoHeight;
-      snapshotCanvas.getContext('2d').drawImage(video, 0, 0);
-      const imageData = snapshotCanvas.toDataURL('image/jpeg', 0.7);
+      try {
+        const snapshotCanvas = document.createElement('canvas');
+        snapshotCanvas.width = video.videoWidth;
+        snapshotCanvas.height = video.videoHeight;
+        snapshotCanvas.getContext('2d').drawImage(video, 0, 0);
+        const imageData = snapshotCanvas.toDataURL('image/jpeg', 0.7);
 
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        await db.collection("leituras").add({
-          valor: valor,
-          imagem: imageData,
-          datahora: new Date().toISOString(),
-          localizacao: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          }
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          await db.collection("leituras").add({
+            valor: valor,
+            imagem: imageData,
+            datahora: new Date().toISOString(),
+            localizacao: {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            }
+          });
         });
-      });
+      } catch (e) {
+        console.warn('snapshot/geo erro:', e);
+      }
     }
 
-    // NOVO: intervalo mais ágil (1,2s)
+    // Intervalo + inicialização da câmera garantidos
     setInterval(capturarImagemEProcessar, 1200);
     iniciarCamera();
   </script>
