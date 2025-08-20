@@ -354,6 +354,39 @@
       ctx.shadowBlur = 0;
     }
 
+    /* ===== Persistência (localStorage) ===== */
+    const LS_KEYS = { total: 'sc_total', valores: 'sc_valores', historico: 'sc_hist' };
+
+    function saveState(){
+      localStorage.setItem(LS_KEYS.total, String(total));
+      localStorage.setItem(LS_KEYS.valores, JSON.stringify(valoresAdicionados));
+      const histJSON = historico.map(h => ({...h, data: h.data instanceof Date ? h.data.toISOString() : h.data}));
+      localStorage.setItem(LS_KEYS.historico, JSON.stringify(histJSON));
+    }
+
+    function loadState(){
+      const t = parseFloat(localStorage.getItem(LS_KEYS.total));
+      total = Number.isFinite(t) && t >= 0 ? t : 0;
+
+      try {
+        const vals = JSON.parse(localStorage.getItem(LS_KEYS.valores) || '[]');
+        valoresAdicionados = Array.isArray(vals) ? vals.filter(v => typeof v === 'number') : [];
+      } catch { valoresAdicionados = []; }
+
+      try {
+        const hist = JSON.parse(localStorage.getItem(LS_KEYS.historico) || '[]');
+        historico.length = 0;
+        hist.forEach(h => historico.push({
+          tipo: h.tipo === 'sub' ? 'sub' : 'add',
+          valor: Number(h.valor) || 0,
+          data: h.data ? new Date(h.data) : new Date(),
+          total: Number(h.total) || 0
+        }));
+      } catch { /* mantém histórico vazio */ }
+
+      somaSpan.innerText = total.toFixed(2);
+    }
+
     /* ====== CÂMERA: robusto com fallback ====== */
     async function iniciarCamera() {
       const modos = [
@@ -382,6 +415,7 @@
       limparSugestoes(); sugestoesFixas = false; bip.play();
       if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
       registrar('add', valor);
+      saveState();
       capturarEEnviarImagem(valor);
     }
 
@@ -393,6 +427,7 @@
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes(); sugestoesFixas = false; bip.play();
       registrar('add', valor);
+      saveState();
       input.value=''; input.focus();
     }
 
@@ -405,17 +440,31 @@
       somaSpan.innerText = total.toFixed(2);
       limparSugestoes(); sugestoesFixas = false; bip.play();
       registrar('sub', valor);
+      saveState();
       input.value=''; input.focus();
     }
 
-    function zerarTotal() { total = 0; valoresAdicionados = []; somaSpan.innerText = total.toFixed(2); bip.play(); }
+    function zerarTotal() {
+      total = 0;
+      valoresAdicionados = [];
+      somaSpan.innerText = total.toFixed(2);
+      bip.play();
+      // limpa histórico e storage
+      historico.length = 0;
+      localStorage.removeItem(LS_KEYS.total);
+      localStorage.removeItem(LS_KEYS.valores);
+      localStorage.removeItem(LS_KEYS.historico);
+    }
+
     function desfazerUltimo() {
       if (valoresAdicionados.length > 0) {
         const valor = valoresAdicionados.pop();
         total -= valor; if (total < 0) total = 0;
         somaSpan.innerText = total.toFixed(2);
+        saveState();
       }
     }
+
     function limparSugestoes() { precosDiv.innerHTML = ''; sugestoesFixas = false; }
 
     /* ===== Histórico UI (fix do clique) ===== */
@@ -436,7 +485,7 @@
           row.className = 'hist-item';
           const tipoPill = `<span class="pill ${item.tipo === 'add' ? 'add' : 'sub'}">${item.tipo === 'add' ? 'Adicionar' : 'Diminuir'}</span>`;
           const valorFmt = (item.tipo === 'add' ? '+' : '-') + ' R$ ' + item.valor.toFixed(2);
-          const dateFmt = item.data.toLocaleString('pt-BR');
+          const dateFmt = item.data instanceof Date ? item.data.toLocaleString('pt-BR') : new Date(item.data).toLocaleString('pt-BR');
           row.innerHTML = `
             <div class="hist-left">
               ${tipoPill}
@@ -450,11 +499,15 @@
           lista.appendChild(row);
         });
       }
+
       el.classList.add('show');
     }
     function fecharHistorico(){ document.getElementById('historicoModal').classList.remove('show'); }
+
+    // Fechar ao clicar no FUNDO (overlay)
     const modalEl = document.getElementById('historicoModal');
     modalEl.addEventListener('click', (e)=>{ if (e.target === modalEl) fecharHistorico(); });
+    // ESC fecha modal
     document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') fecharHistorico(); });
 
     /* ===== OCR ===== */
@@ -480,6 +533,7 @@
       if (ctx.filter !== undefined) ctx.filter = 'none';
 
       try {
+        // REGEX ORIGINAL (somente com centavos)
         const { data: { text} } = await Tesseract.recognize(canvas, 'eng');
         const matches = text.match(/\d{1,3}(?:[.,]\d{2})/g);
         if (matches) {
@@ -522,12 +576,14 @@
       } catch (e) { console.warn('snapshot/geo erro:', e); }
     }
 
-    // Intervalo + inicialização da câmera garantidos
+    // Intervalo + inicialização e carga do estado
     setInterval(capturarImagemEProcessar, 1200);
     iniciarCamera();
+    loadState();
   </script>
 </body>
 </html>
+
 
 
 
