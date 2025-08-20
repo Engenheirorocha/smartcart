@@ -199,6 +199,9 @@
       <div class="row">
         <input id="manualInput" class="input" type="number" step="0.01" placeholder="Digite o valor (ex: 10.50)">
         <button class="btn ok" onclick="adicionarManual()">➕ Adicionar</button>
+        <!-- NOVOS BOTÕES (sem alterar o layout existente) -->
+        <button class="btn warn" onclick="diminuirManual()">➖ Diminuir</button>
+        <button class="btn err" onclick="zerarTotal()">🧹 Zerar Total</button>
       </div>
 
       <div class="row">
@@ -310,7 +313,7 @@
 
     function adicionarManual() {
       const input = document.getElementById('manualInput');
-      const valor = parseFloat(input.value.replace(',', '.'));
+      const valor = parseFloat((input.value || '').replace(',', '.'));
       if (isNaN(valor) || valor <= 0) {
         alert("Digite um valor válido.");
         return;
@@ -324,10 +327,36 @@
       input.value = '';
     }
 
+    /* ===== NOVO: Diminuir valor manual ===== */
+    function diminuirManual() {
+      const input = document.getElementById('manualInput');
+      const valor = parseFloat((input.value || '').replace(',', '.'));
+      if (isNaN(valor) || valor <= 0) {
+        alert("Digite um valor válido.");
+        return;
+      }
+      total -= valor;
+      if (total < 0) total = 0; // protege total de ficar negativo
+      valoresAdicionados.push(-valor); // mantém compatibilidade com desfazer
+      somaSpan.innerText = total.toFixed(2);
+      limparSugestoes();
+      sugestoesFixas = false;
+      bip.play();
+      // não limpa o input para o usuário poder ajustar rapidamente se quiser
+    }
+
+    /* ===== NOVO: Zerar Total ===== */
+    function zerarTotal() {
+      total = 0;
+      valoresAdicionados = []; // inicia nova “sessão” de somatório
+      somaSpan.innerText = total.toFixed(2);
+      bip.play();
+    }
+
     function desfazerUltimo() {
       if (valoresAdicionados.length > 0) {
         const valor = valoresAdicionados.pop();
-        total -= valor;
+        total -= valor; // se for negativo, desfaz a subtração (soma)
         if (total < 0) total = 0;
         somaSpan.innerText = total.toFixed(2);
       }
@@ -429,6 +458,7 @@
   </script>
 </body>
 </html>
+
 
 
 
