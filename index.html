@@ -40,7 +40,7 @@
       background-image: var(--bg-grad);
     }
 
-    /* Header (atualizado) */
+    /* Header */
     header{
       position: sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
@@ -48,9 +48,7 @@
       border-bottom: 1px solid var(--card-border);
     }
     .wrap{ max-width:1200px; margin:0 auto; padding:14px 18px; display:flex; justify-content:center; }
-    .brand{
-      display:flex; align-items:center; gap:12px;
-    }
+    .brand{ display:flex; align-items:center; gap:12px; }
     .logo{
       width:34px; height:34px; border-radius:9px;
       background: linear-gradient(135deg, #6ea8fe, #36d399);
@@ -78,50 +76,29 @@
 
     /* Câmera */
     .videoWrap{
-      position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid var(--card-border);
-      background: rgba(0,0,0,0.35);
-      aspect-ratio: 16/9;
-      box-shadow: var(--shadow);
+      position: relative; border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--card-border); background: rgba(0,0,0,0.35);
+      aspect-ratio: 16/9; box-shadow: var(--shadow);
     }
     @media (max-width:980px){ .videoWrap{ aspect-ratio:auto; height:56vh } }
 
-    video{
-      width:100%; height:100%; object-fit:cover; display:block;
-    }
-    #overlay{
-      position:absolute; inset:0; width:100%; height:100%;
-      pointer-events:none;
-    }
+    video{ width:100%; height:100%; object-fit:cover; display:block; }
+    #overlay{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
     /* HUD */
-    .hud{
-      position:absolute; left:10px; bottom:10px; display:flex; gap:8px; flex-wrap:wrap;
-    }
+    .hud{ position:absolute; left:10px; bottom:10px; display:flex; gap:8px; flex-wrap:wrap; }
     .tag{
-      background: rgba(12,18,40,0.7);
-      border: 1px solid var(--card-border);
-      color: var(--muted);
-      padding: 6px 8px; font-size:12px; border-radius: 10px;
-      backdrop-filter: blur(6px);
+      background: rgba(12,18,40,0.7); border: 1px solid var(--card-border);
+      color: var(--muted); padding: 6px 8px; font-size:12px; border-radius: 10px; backdrop-filter: blur(6px);
     }
 
     /* Coluna direita */
     .title{ font-size:13px; color:var(--muted); letter-spacing:.4px; text-transform:uppercase }
-    #precos{
-      display:flex; flex-direction:column; gap:10px;
-      max-height:48vh; overflow:auto; padding-right:4px;
-    }
+    #precos{ display:flex; flex-direction:column; gap:10px; max-height:48vh; overflow:auto; padding-right:4px; }
     .preco-btn{
-      font-size:1.1em; font-weight:600;
-      padding:12px 14px;
+      font-size:1.1em; font-weight:600; padding:12px 14px;
       background: linear-gradient(180deg, rgba(24,42,30,0.9), rgba(18,33,24,0.9));
-      color:#d9ffe9;
-      border:1px solid rgba(72,140,92,0.45);
-      border-radius:12px;
-      cursor:pointer;
+      color:#d9ffe9; border:1px solid rgba(72,140,92,0.45); border-radius:12px; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
       transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
       box-shadow: 0 6px 16px rgba(7,20,12,0.35);
@@ -132,20 +109,12 @@
     /* Inputs/botões */
     .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
     .input{
-      border:1px solid var(--card-border);
-      background: rgba(8,12,28,0.6);
-      color:var(--text);
-      padding: 10px 12px;
-      border-radius:12px;
-      outline:none;
+      border:1px solid var(--card-border); background: rgba(8,12,28,0.6);
+      color:var(--text); padding: 10px 12px; border-radius:12px; outline:none;
     }
     .btn{
-      border:1px solid var(--card-border);
-      background: rgba(8,12,28,0.6);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
+      border:1px solid var(--card-border); background: rgba(8,12,28,0.6);
+      color:var(--text); padding:10px 12px; border-radius:12px; cursor:pointer;
       transition: transform .12s ease, background .12s ease, border-color .12s ease;
     }
     .btn:hover{ transform: translateY(-1px) }
@@ -155,58 +124,61 @@
 
     /* Total */
     #total{
-      font-size: 1.8em; color:#c5f8d7;
-      display:flex; align-items:center; justify-content:space-between;
+      font-size: 1.8em; color:#c5f8d7; display:flex; align-items:center; justify-content:space-between;
       padding-top:8px; margin-top:6px; border-top:1px dashed var(--card-border);
     }
 
     /* Tip */
-    .tip{
-      font-size:13px; color:var(--muted);
-      border-left:3px solid rgba(110,168,254,0.5);
-      padding-left:10px;
-    }
+    .tip{ font-size:13px; color:var(--muted); border-left:3px solid rgba(110,168,254,0.5); padding-left:10px; }
 
-    /* ===== Modal Histórico ===== */
+    /* ===== Modal genérico ===== */
     .modal{
-      position: fixed; inset: 0; display:none;
-      align-items:center; justify-content:center;
-      background: rgba(5,8,20,0.6);
-      backdrop-filter: blur(6px);
-      z-index: 999;
+      position: fixed; inset: 0; display:none; align-items:center; justify-content:center;
+      background: rgba(5,8,20,0.6); backdrop-filter: blur(6px); z-index: 999;
     }
     .modal.show{ display:flex }
     .modal-card{
-      width:min(640px, 92vw);
-      background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius:16px;
-      box-shadow: var(--shadow);
-      padding: 12px;
+      width:min(800px, 92vw); background: var(--card); border: 1px solid var(--card-border);
+      border-radius:16px; box-shadow: var(--shadow); padding: 12px;
     }
     .modal-head{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px; padding:6px 6px 10px 6px; border-bottom: 1px dashed var(--card-border);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding:6px 6px 10px 6px; border-bottom: 1px dashed var(--card-border);
     }
     .modal-title{ font-weight:700; letter-spacing:.3px }
-    .modal-body{ max-height: 60vh; overflow:auto; padding-top:10px }
-    .hist{
-      display:flex; flex-direction:column; gap:8px;
-    }
+    .modal-body{ max-height: 68vh; overflow:auto; padding-top:10px }
+
+    /* Histórico */
+    .hist{ display:flex; flex-direction:column; gap:8px; }
     .hist-item{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:10px 12px; border:1px solid var(--card-border);
-      border-radius:12px; background: rgba(8,12,28,0.55);
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:10px 12px; border:1px solid var(--card-border); border-radius:12px; background: rgba(8,12,28,0.55);
     }
     .hist-left{ display:flex; align-items:center; gap:10px; }
-    .pill{
-      padding:4px 8px; border-radius:999px; font-size:12px;
-      border:1px solid var(--card-border);
-    }
+    .pill{ padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--card-border); }
     .pill.add{ color:#d9ffe9; background: rgba(24,42,30,0.7); border-color: rgba(72,140,92,0.45) }
     .pill.sub{ color:#ffe0e0; background: rgba(52,24,24,0.6); border-color: rgba(164,74,74,0.45) }
     .hist-val{ font-weight:700 }
     .hist-time{ color: var(--muted); font-size:12px }
+
+    /* ===== Chat/Feed ===== */
+    .feed{ display:flex; flex-direction:column; gap:12px; }
+    .post{
+      border:1px solid var(--card-border); border-radius:14px; background: rgba(8,12,28,0.55);
+      overflow:hidden;
+    }
+    .post-img{ width:100%; display:block; object-fit:cover; max-height:420px; }
+    .post-body{ padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+    .post-title{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .price{ font-weight:700; font-size:1.2rem; color:#c5f8d7; }
+    .loc{ font-size:12px; color:var(--muted); }
+    .actions{ display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-ghost{
+      background: rgba(8,12,28,0.35); border:1px solid var(--card-border);
+      color:var(--text); padding:8px 10px; border-radius:10px; cursor:pointer;
+    }
+    .btn-ghost.active{ outline: 2px solid rgba(110,168,254,0.35); }
+    .btn-ghost[disabled]{ opacity:.5; cursor:not-allowed }
   </style>
 </head>
 <body>
@@ -215,7 +187,6 @@
     <div class="wrap">
       <div class="brand">
         <div class="logo" aria-hidden="true">
-          <!-- Ícone de carrinho -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Carrinho de compras">
             <circle cx="9" cy="21" r="1"></circle>
@@ -258,6 +229,7 @@
         <button class="btn err" onclick="limparSugestoes()">❌ Apagar sugestões</button>
         <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer último</button>
         <button class="btn" onclick="abrirHistorico(event)">📜 Histórico</button>
+        <button class="btn" onclick="abrirFeed(event)">💬 Chat</button>
       </div>
 
       <div class="row" style="align-items:center">
@@ -290,11 +262,28 @@
     </div>
   </div>
 
+  <!-- Modal Chat/Feed -->
+  <div id="feedModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="feedTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title" id="feedTitle">Chat (timeline de preços)</div>
+        <div style="display:flex; gap:8px">
+          <button class="btn warn" onclick="limparFeed()">🧹 Limpar chat</button>
+          <button class="btn" onclick="fecharFeed()">✖ Fechar</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="feedLista" class="feed"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Audio -->
   <audio id="bip-audio" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
 
   <!-- JS -->
   <script>
+    /* Firebase (mantido; pode estar inativo no seu projeto) */
     const firebaseConfig = {
       apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
       authDomain: "smartcart-app-dc796.firebaseapp.com",
@@ -312,23 +301,21 @@
     const somaSpan = document.getElementById('soma');
     const bip = document.getElementById('bip-audio');
 
-    /* ===== Histórico (memória local da sessão) ===== */
+    /* Histórico (memória local da sessão) */
     const historico = []; // {tipo:'add'|'sub', valor:number, data:Date, total:number}
-    function registrar(tipo, valor){
-      historico.unshift({ tipo, valor, data: new Date(), total: total });
-    }
+    function registrar(tipo, valor){ historico.unshift({ tipo, valor, data: new Date(), total: total }); }
 
     let total = 0;
     let canvas = document.createElement('canvas');
     let isProcessing = false;
     let valoresAdicionados = [];
-    let sugestoesFixas = false; // compat
+    let sugestoesFixas = false;
 
-    // Cooldown para estabilidade das sugestões
+    // Cooldown OCR
     let lastSuggestionsAt = 0;
-    const SUGGESTIONS_COOLDOWN = 1200; // ms
+    const SUGGESTIONS_COOLDOWN = 1200;
 
-    // ROI em coords do overlay (canvas)
+    // ROI
     const roi = { x:0, y:0, w:0, h:0 };
 
     function syncOverlayToVideo(){
@@ -344,15 +331,11 @@
       syncOverlayToVideo();
       const ctx = overlay.getContext('2d');
       ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-      // ROI 50% x 20%, centralizada
       const w = overlay.width  * 0.5;
       const h = overlay.height * 0.2;
       const x = (overlay.width  - w) / 2;
       const y = (overlay.height - h) / 2;
-
       roi.x = x; roi.y = y; roi.w = w; roi.h = h;
-
       const dpr = window.devicePixelRatio || 1;
       ctx.strokeStyle = 'rgba(255,255,255,0.95)';
       ctx.lineWidth = 3 * dpr;
@@ -362,14 +345,15 @@
       ctx.shadowBlur = 0;
     }
 
-    /* ===== Persistência (localStorage) ===== */
-    const LS_KEYS = { total: 'sc_total', valores: 'sc_valores', historico: 'sc_hist' };
+    /* Persistência local */
+    const LS_KEYS = { total: 'sc_total', valores: 'sc_valores', historico: 'sc_hist', feed: 'sc_feed', share: 'sc_share_chat' };
 
     function saveState(){
       localStorage.setItem(LS_KEYS.total, String(total));
       localStorage.setItem(LS_KEYS.valores, JSON.stringify(valoresAdicionados));
       const histJSON = historico.map(h => ({...h, data: h.data instanceof Date ? h.data.toISOString() : h.data}));
       localStorage.setItem(LS_KEYS.historico, JSON.stringify(histJSON));
+      saveFeed();
     }
 
     function loadState(){
@@ -390,37 +374,25 @@
           data: h.data ? new Date(h.data) : new Date(),
           total: Number(h.total) || 0
         }));
-      } catch { /* mantém histórico vazio */ }
+      } catch {}
 
       somaSpan.innerText = total.toFixed(2);
+      loadFeed();
     }
 
-    /* ===== Envio para Chat (opt-in) (placeholder) ===== */
-    const SHARE_KEY = 'sc_share_chat';
-    let shareToChat = JSON.parse(localStorage.getItem(SHARE_KEY) || 'false');
-    function toggleShareChat(v){ shareToChat = !!v; localStorage.setItem(SHARE_KEY, JSON.stringify(shareToChat)); }
+    /* Enviar para o chat (opt-in) */
+    let shareToChat = JSON.parse(localStorage.getItem(LS_KEYS.share) || 'false');
+    function toggleShareChat(v){ shareToChat = !!v; localStorage.setItem(LS_KEYS.share, JSON.stringify(shareToChat)); }
     function initShareToggle(){ const el = document.getElementById('shareChatToggle'); if (el) el.checked = !!shareToChat; }
     function mapsLink(lat, lng){ return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`; }
-    async function sendToChat({ valor, imagem, coords }){
-      try{
-        const payload = {
-          tipo: 'ocr_item',
-          texto: `R$ ${Number(valor).toFixed(2)}`,
-          maps: coords ? mapsLink(coords.lat, coords.lng) : null,
-          imagem,
-          criadoEm: new Date().toISOString()
-        };
-        await db.collection('chat').add(payload);
-      }catch(e){ console.warn('chat erro:', e); }
-    }
+    function mapsRoute(lat, lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
 
-    /* ===== Controle de OCR (pausa/retoma) ===== */
+    /* Controle de OCR (pausa/retoma) */
     let ocrPaused = false;
     function pauseOCR(v){ ocrPaused = !!v; }
-    // Pausa quando a aba fica em segundo plano; retoma ao voltar
     document.addEventListener('visibilitychange', ()=>{ pauseOCR(document.hidden); });
 
-    /* ====== CÂMERA: robusto com fallback ====== */
+    /* Câmera com fallback */
     async function iniciarCamera() {
       const modos = [
         { video: { facingMode: { exact: 'environment' } }, audio: false },
@@ -441,6 +413,7 @@
       if (!ok) alert("Erro ao acessar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
     }
 
+    /* Somatório */
     function adicionarPreco(valor, btn) {
       total += valor;
       valoresAdicionados.push(valor);
@@ -449,7 +422,7 @@
       if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
       registrar('add', valor);
       saveState();
-      capturarEEnviarImagem(valor);
+      capturarEEnviarImagem(valor); // captura foto + (agora) salva no chat local se toggle estiver ligado
     }
 
     function adicionarManual() {
@@ -478,15 +451,13 @@
     }
 
     function zerarTotal() {
-      total = 0;
-      valoresAdicionados = [];
-      somaSpan.innerText = total.toFixed(2);
-      bip.play();
-      // limpa histórico e storage
+      total = 0; valoresAdicionados = [];
+      somaSpan.innerText = total.toFixed(2); bip.play();
       historico.length = 0;
       localStorage.removeItem(LS_KEYS.total);
       localStorage.removeItem(LS_KEYS.valores);
       localStorage.removeItem(LS_KEYS.historico);
+      saveFeed(); // mantém o chat; não apaga
     }
 
     function desfazerUltimo() {
@@ -500,15 +471,12 @@
 
     function limparSugestoes() { precosDiv.innerHTML = ''; sugestoesFixas = false; }
 
-    /* ===== Histórico UI (fix + pausa OCR) ===== */
+    /* Histórico UI */
     function abrirHistorico(e){
-      if (e) e.stopPropagation();
-      pauseOCR(true); // pausa OCR enquanto o modal está aberto
-
+      if (e) e.stopPropagation(); pauseOCR(true);
       const el = document.getElementById('historicoModal');
       const lista = document.getElementById('historicoLista');
       lista.innerHTML = '';
-
       if (historico.length === 0){
         const vazio = document.createElement('div');
         vazio.className = 'hist-item';
@@ -534,52 +502,30 @@
           lista.appendChild(row);
         });
       }
-
       el.classList.add('show');
     }
+    function fecharHistorico(){ document.getElementById('historicoModal').classList.remove('show'); pauseOCR(false); }
+    document.getElementById('historicoModal').addEventListener('click', (e)=>{ if (e.target.id==='historicoModal') fecharHistorico(); });
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { fecharHistorico(); fecharFeed(); } });
 
-    function fecharHistorico(){
-      document.getElementById('historicoModal').classList.remove('show');
-      pauseOCR(false); // retoma OCR ao fechar
-    }
-
-    // Fechar ao clicar no FUNDO (overlay)
-    const modalEl = document.getElementById('historicoModal');
-    modalEl.addEventListener('click', (e)=>{ if (e.target === modalEl) fecharHistorico(); });
-    // ESC fecha modal
-    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') fecharHistorico(); });
-
-    /* ===== OCR ===== */
+    /* OCR */
     async function capturarImagemEProcessar() {
-      if (ocrPaused || isProcessing || video.videoWidth === 0) return; // << NOVO: pausa respeitada
-      isProcessing = true; 
-      desenharROI();
-
+      if (ocrPaused || isProcessing || video.videoWidth === 0) return;
+      isProcessing = true; desenharROI();
       const ctx = canvas.getContext('2d');
 
-      // Mapear ROI (overlay exibido) -> pixels reais do vídeo
       const scaleX = video.videoWidth  / overlay.width;
       const scaleY = video.videoHeight / overlay.height;
-
       const roiWidth  = Math.round(roi.w * scaleX);
       const roiHeight = Math.round(roi.h * scaleY);
       const roiX      = Math.round(roi.x * scaleX);
       const roiY      = Math.round(roi.y * scaleY);
 
-      // Downscale para acelerar OCR (máximo 600px de largura)
       const MAX_W = 600;
-      let dw = roiWidth;
-      let dh = roiHeight;
-      if (dw > MAX_W) {
-        const s = MAX_W / dw;
-        dw = Math.max(1, Math.round(dw * s));
-        dh = Math.max(1, Math.round(dh * s));
-      }
+      let dw = roiWidth, dh = roiHeight;
+      if (dw > MAX_W) { const s = MAX_W / dw; dw = Math.max(1, Math.round(dw*s)); dh = Math.max(1, Math.round(dh*s)); }
+      canvas.width = dw; canvas.height = dh;
 
-      canvas.width = dw;
-      canvas.height = dh;
-
-      // leve pré-processamento (grayscale + contraste)
       if (ctx.filter !== undefined) ctx.filter = 'grayscale(1) contrast(115%)';
       ctx.drawImage(video, roiX, roiY, roiWidth, roiHeight, 0, 0, dw, dh);
       if (ctx.filter !== undefined) ctx.filter = 'none';
@@ -591,7 +537,6 @@
           const now = Date.now();
           if (now - lastSuggestionsAt >= SUGGESTIONS_COOLDOWN) {
             lastSuggestionsAt = now;
-
             limparSugestoes();
             matches.slice(0, 3).forEach(str => {
               const valor = parseFloat(str.replace(',', '.'));
@@ -605,44 +550,180 @@
             });
           }
         }
-      } catch (e) {
-        console.warn('OCR erro:', e);
-      } finally {
-        isProcessing = false;
-      }
+      } catch (e) { console.warn('OCR erro:', e); }
+      finally { isProcessing = false; }
     }
 
+    /* ===== Chat/Feed local ===== */
+    const FEED_LIMIT = 200;
+    let feed = []; // {id, ts, valor, img, coords:{lat,lng}|null, rating:-1|0|1}
+
+    function loadFeed(){
+      try {
+        const f = JSON.parse(localStorage.getItem(LS_KEYS.feed) || '[]');
+        if (Array.isArray(f)) feed = f;
+      } catch { feed = []; }
+    }
+    function saveFeed(){
+      localStorage.setItem(LS_KEYS.feed, JSON.stringify(feed));
+    }
+    function pushFeed(post){
+      feed.unshift(post);
+      if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
+      saveFeed();
+    }
+
+    function abrirFeed(e){
+      if (e) e.stopPropagation(); pauseOCR(true);
+      renderFeed();
+      document.getElementById('feedModal').classList.add('show');
+    }
+    function fecharFeed(){ document.getElementById('feedModal').classList.remove('show'); pauseOCR(false); }
+    document.getElementById('feedModal').addEventListener('click', (e)=>{ if (e.target.id==='feedModal') fecharFeed(); });
+
+    function renderFeed(){
+      const lista = document.getElementById('feedLista');
+      lista.innerHTML = '';
+      if (feed.length === 0){
+        const empty = document.createElement('div');
+        empty.className = 'hist-item';
+        empty.textContent = 'Seu chat está vazio. Ative “Enviar para o chat” e confirme um preço pelo OCR.';
+        lista.appendChild(empty);
+        return;
+      }
+      feed.forEach(p=>{
+        const card = document.createElement('div');
+        card.className = 'post';
+        const img = document.createElement('img');
+        img.className = 'post-img';
+        img.src = p.img;
+        img.alt = `Preço registrado: R$ ${Number(p.valor).toFixed(2)}`;
+
+        const body = document.createElement('div');
+        body.className = 'post-body';
+
+        const title = document.createElement('div');
+        title.className = 'post-title';
+        const price = document.createElement('div');
+        price.className = 'price';
+        price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
+        const when = document.createElement('div');
+        when.className = 'loc';
+        const d = new Date(p.ts);
+        when.textContent = d.toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
+
+        title.appendChild(price);
+        title.appendChild(when);
+
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+
+        const btnOk = document.createElement('button');
+        btnOk.className = 'btn-ghost' + (p.rating === 1 ? ' active' : '');
+        btnOk.textContent = '👍 Bom';
+        btnOk.onclick = ()=> setRating(p.id, p.rating === 1 ? 0 : 1);
+
+        const btnBad = document.createElement('button');
+        btnBad.className = 'btn-ghost' + (p.rating === -1 ? ' active' : '');
+        btnBad.textContent = '👎 Ruim';
+        btnBad.onclick = ()=> setRating(p.id, p.rating === -1 ? 0 : -1);
+
+        const btnMap = document.createElement('button');
+        btnMap.className = 'btn-ghost';
+        btnMap.textContent = '📍 Rota';
+        if (p.coords){
+          btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank');
+        } else {
+          btnMap.disabled = true;
+        }
+
+        const btnShare = document.createElement('button');
+        btnShare.className = 'btn-ghost';
+        btnShare.textContent = '🔗 Compartilhar';
+        btnShare.onclick = ()=> sharePost(p);
+
+        actions.appendChild(btnOk);
+        actions.appendChild(btnBad);
+        actions.appendChild(btnMap);
+        actions.appendChild(btnShare);
+
+        body.appendChild(title);
+        body.appendChild(actions);
+
+        card.appendChild(img);
+        card.appendChild(body);
+        lista.appendChild(card);
+      });
+    }
+
+    function setRating(id, v){
+      const idx = feed.findIndex(p=>p.id===id);
+      if (idx === -1) return;
+      feed[idx].rating = v;
+      saveFeed();
+      renderFeed();
+    }
+
+    async function sharePost(p){
+      const text = `Oferta: R$ ${Number(p.valor).toFixed(2)}${p.coords ? `\nMapa: ${mapsRoute(p.coords.lat, p.coords.lng)}` : ''}`;
+      try{
+        if (navigator.share){
+          await navigator.share({ text, title: 'Smart Cart', url: p.coords ? mapsRoute(p.coords.lat, p.coords.lng) : undefined });
+        } else {
+          const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+          window.open(url, '_blank');
+        }
+      }catch(e){ console.warn('share erro:', e); }
+    }
+
+    function limparFeed(){
+      if (!confirm('Limpar todo o chat?')) return;
+      feed = [];
+      saveFeed();
+      renderFeed();
+    }
+
+    /* Captura foto + salva em leituras + envia para chat local (se opt-in) */
     async function capturarEEnviarImagem(valor) {
       try {
-        const snapshotCanvas = document.createElement('canvas');
-        snapshotCanvas.width = video.videoWidth;
-        snapshotCanvas.height = video.videoHeight;
-        snapshotCanvas.getContext('2d').drawImage(video, 0, 0);
-        const imageData = snapshotCanvas.toDataURL('image/jpeg', 0.7);
+        // snapshot original
+        const fullCanvas = document.createElement('canvas');
+        fullCanvas.width = video.videoWidth;
+        fullCanvas.height = video.videoHeight;
+        fullCanvas.getContext('2d').drawImage(video, 0, 0);
+        // thumb compacta (para o feed)
+        const maxW = 640;
+        let tw = fullCanvas.width, th = fullCanvas.height;
+        if (tw > maxW){ const s = maxW / tw; tw = Math.max(1, Math.round(tw*s)); th = Math.max(1, Math.round(th*s)); }
+        const thumb = document.createElement('canvas');
+        thumb.width = tw; thumb.height = th;
+        thumb.getContext('2d').drawImage(fullCanvas, 0, 0, tw, th);
+        const imageThumb = thumb.toDataURL('image/jpeg', 0.7);
+
+        const fullImage = fullCanvas.toDataURL('image/jpeg', 0.7); // se quiser usar em outro lugar
 
         navigator.geolocation.getCurrentPosition(async (position) => {
           const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
 
-          await db.collection("leituras").add({
-            valor: valor,
-            imagem: imageData,
-            datahora: new Date().toISOString(),
-            localizacao: coords
-          });
+          // (opcional) salvar em "leituras" do Firestore — pode falhar se seu projeto estiver off
+          try { await db.collection("leituras").add({
+            valor: valor, imagem: fullImage, datahora: new Date().toISOString(), localizacao: coords
+          }); } catch(e){ /* ignore se der erro */ }
 
+          // Chat local (timeline)
           if (shareToChat) {
-            await sendToChat({ valor, imagem: imageData, coords });
+            pushFeed({ id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords, rating: 0 });
           }
         }, async () => {
-          await db.collection("leituras").add({
-            valor: valor,
-            imagem: imageData,
-            datahora: new Date().toISOString(),
-            localizacao: null
-          });
+          // Sem geo
+          try { await db.collection("leituras").add({
+            valor: valor, imagem: fullImage, datahora: new Date().toISOString(), localizacao: null
+          }); } catch(e){ /* ignore */ }
 
           if (shareToChat) {
-            await sendToChat({ valor, imagem: imageData, coords: null });
+            pushFeed({ id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords: null, rating: 0 });
           }
         });
       } catch (e) {
@@ -650,7 +731,7 @@
       }
     }
 
-    // Intervalo + inicialização e carga do estado
+    // Inicialização
     setInterval(capturarImagemEProcessar, 1200);
     iniciarCamera();
     loadState();
@@ -658,6 +739,9 @@
   </script>
 </body>
 </html>
+
+
+
 
 
 
