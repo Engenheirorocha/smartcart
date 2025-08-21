@@ -5,12 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Smart Cart</title>
 
-  <!-- Libs originais (inalteradas) -->
+  <!-- OCR -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-  <!-- Fonte moderna -->
+  <!-- Fonte -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
@@ -29,18 +27,15 @@
       --err:#ff7c7c;
       --shadow: 0 10px 30px rgba(8,13,33,0.5), inset 0 1px rgba(255,255,255,0.05);
     }
-
     *{ box-sizing:border-box }
     html,body{ height:100% }
     body{
-      margin:0;
-      color:var(--text);
+      margin:0; color:var(--text);
       font: 500 15px/1.55 "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: var(--bg);
-      background-image: var(--bg-grad);
+      background: var(--bg); background-image: var(--bg-grad);
     }
 
-    /* Header */
+    /* Header centrado com carrinho */
     header{
       position: sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
@@ -64,7 +59,6 @@
       display:grid; grid-template-columns:1.6fr 1fr; gap:16px;
     }
     @media (max-width:980px){ main{ grid-template-columns:1fr } }
-
     .card{
       background: var(--card);
       border: 1px solid var(--card-border);
@@ -81,7 +75,6 @@
       aspect-ratio: 16/9; box-shadow: var(--shadow);
     }
     @media (max-width:980px){ .videoWrap{ aspect-ratio:auto; height:56vh } }
-
     video{ width:100%; height:100%; object-fit:cover; display:block; }
     #overlay{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 
@@ -131,7 +124,7 @@
     /* Tip */
     .tip{ font-size:13px; color:var(--muted); border-left:3px solid rgba(110,168,254,0.5); padding-left:10px; }
 
-    /* ===== Modal genérico ===== */
+    /* ===== Modal base ===== */
     .modal{
       position: fixed; inset: 0; display:none; align-items:center; justify-content:center;
       background: rgba(5,8,20,0.6); backdrop-filter: blur(6px); z-index: 999;
@@ -139,14 +132,18 @@
     .modal.show{ display:flex }
     .modal-card{
       width:min(800px, 92vw); background: var(--card); border: 1px solid var(--card-border);
-      border-radius:16px; box-shadow: var(--shadow); padding: 12px;
+      border-radius:16px; box-shadow: var(--shadow); padding: 12px; display:flex; flex-direction:column; max-height:90vh;
     }
     .modal-head{
       display:flex; align-items:center; justify-content:space-between; gap:10px;
       padding:6px 6px 10px 6px; border-bottom: 1px dashed var(--card-border);
     }
     .modal-title{ font-weight:700; letter-spacing:.3px }
-    .modal-body{ max-height: 68vh; overflow:auto; padding-top:10px }
+    .modal-body{ overflow:auto; padding-top:10px; }
+    .modal-foot{
+      border-top:1px dashed var(--card-border); margin-top:10px; padding-top:10px;
+      display:flex; gap:8px; align-items:center; position:sticky; bottom:0; background:var(--card);
+    }
 
     /* Histórico */
     .hist{ display:flex; flex-direction:column; gap:8px; }
@@ -179,6 +176,16 @@
     }
     .btn-ghost.active{ outline: 2px solid rgba(110,168,254,0.35); }
     .btn-ghost[disabled]{ opacity:.5; cursor:not-allowed }
+
+    /* Mensagens de texto no chat */
+    .msg{
+      border:1px solid var(--card-border); border-radius:14px; background: rgba(8,12,28,0.5);
+      padding:10px 12px; display:flex; flex-direction:column; gap:6px;
+    }
+    .msg-text{ white-space:pre-wrap; }
+    .msg-meta{ font-size:12px; color:var(--muted); display:flex; gap:10px; align-items:center; }
+    .foot-input{ flex:1; }
+    .foot-tog{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); user-select:none; }
   </style>
 </head>
 <body>
@@ -275,6 +282,13 @@
       <div class="modal-body">
         <div id="feedLista" class="feed"></div>
       </div>
+      <div class="modal-foot">
+        <input id="chatInput" class="input foot-input" type="text" placeholder="Escreva uma mensagem..." />
+        <label class="foot-tog">
+          <input type="checkbox" id="chatLocToggle"> 📍 incluir localização
+        </label>
+        <button class="btn ok" onclick="enviarMensagem()">Enviar</button>
+      </div>
     </div>
   </div>
 
@@ -283,26 +297,27 @@
 
   <!-- JS -->
   <script>
-    /* Firebase (mantido; pode estar inativo no seu projeto) */
-    const firebaseConfig = {
-      apiKey: "AIzaSyAfhmfxYmQOgO3ACrCHeNZx83khMrDUD8U",
-      authDomain: "smartcart-app-dc796.firebaseapp.com",
-      projectId: "smartcart-app-dc796",
-      storageBucket: "smartcart-app-dc796.appspot.com",
-      messagingSenderId: "903830223010",
-      appId: "1:903830223010:web:9241e79644d2039c3e7ffb"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    /* ==== Cloud sync (Workers) ==== */
+    const SYNC_TO_CLOUD = false; // troque para true quando tiver seu Worker
+    const API_BASE = "https://smartcart-chat.SEU_SUBDOMINIO.workers.dev"; // sua URL depois
 
+    // id único do aparelho (use o mesmo nos dois devices se quiser ver o mesmo feed)
+    const DID_KEY = 'sc_device_id';
+    let deviceId = localStorage.getItem(DID_KEY);
+    if (!deviceId) {
+      deviceId = Date.now() + '_' + Math.random().toString(36).slice(2,10);
+      localStorage.setItem(DID_KEY, deviceId);
+    }
+
+    /* ===== Câmera / elementos ===== */
     const video = document.getElementById('video');
     const overlay = document.getElementById('overlay');
     const precosDiv = document.getElementById('precos');
     const somaSpan = document.getElementById('soma');
     const bip = document.getElementById('bip-audio');
 
-    /* Histórico (memória local da sessão) */
-    const historico = []; // {tipo:'add'|'sub', valor:number, data:Date, total:number}
+    /* ===== Histórico sessão ===== */
+    const historico = []; // {tipo:'add'|'sub', valor, data, total}
     function registrar(tipo, valor){ historico.unshift({ tipo, valor, data: new Date(), total: total }); }
 
     let total = 0;
@@ -311,7 +326,7 @@
     let valoresAdicionados = [];
     let sugestoesFixas = false;
 
-    // Cooldown OCR
+    // OCR cooldown
     let lastSuggestionsAt = 0;
     const SUGGESTIONS_COOLDOWN = 1200;
 
@@ -345,7 +360,7 @@
       ctx.shadowBlur = 0;
     }
 
-    /* Persistência local */
+    /* ===== Persistência local ===== */
     const LS_KEYS = { total: 'sc_total', valores: 'sc_valores', historico: 'sc_hist', feed: 'sc_feed', share: 'sc_share_chat' };
 
     function saveState(){
@@ -380,19 +395,18 @@
       loadFeed();
     }
 
-    /* Enviar para o chat (opt-in) */
+    /* ===== Toggle "Enviar para o chat" ===== */
     let shareToChat = JSON.parse(localStorage.getItem(LS_KEYS.share) || 'false');
     function toggleShareChat(v){ shareToChat = !!v; localStorage.setItem(LS_KEYS.share, JSON.stringify(shareToChat)); }
     function initShareToggle(){ const el = document.getElementById('shareChatToggle'); if (el) el.checked = !!shareToChat; }
-    function mapsLink(lat, lng){ return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`; }
     function mapsRoute(lat, lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
 
-    /* Controle de OCR (pausa/retoma) */
+    /* ===== Controle OCR pausa/retoma ===== */
     let ocrPaused = false;
     function pauseOCR(v){ ocrPaused = !!v; }
     document.addEventListener('visibilitychange', ()=>{ pauseOCR(document.hidden); });
 
-    /* Câmera com fallback */
+    /* ===== Câmera com fallback ===== */
     async function iniciarCamera() {
       const modos = [
         { video: { facingMode: { exact: 'environment' } }, audio: false },
@@ -413,7 +427,7 @@
       if (!ok) alert("Erro ao acessar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
     }
 
-    /* Somatório */
+    /* ===== Somatório ===== */
     function adicionarPreco(valor, btn) {
       total += valor;
       valoresAdicionados.push(valor);
@@ -422,7 +436,7 @@
       if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
       registrar('add', valor);
       saveState();
-      capturarEEnviarImagem(valor); // captura foto + (agora) salva no chat local se toggle estiver ligado
+      capturarEEnviarImagem(valor);
     }
 
     function adicionarManual() {
@@ -457,7 +471,7 @@
       localStorage.removeItem(LS_KEYS.total);
       localStorage.removeItem(LS_KEYS.valores);
       localStorage.removeItem(LS_KEYS.historico);
-      saveFeed(); // mantém o chat; não apaga
+      saveFeed(); // não apaga o chat
     }
 
     function desfazerUltimo() {
@@ -471,7 +485,7 @@
 
     function limparSugestoes() { precosDiv.innerHTML = ''; sugestoesFixas = false; }
 
-    /* Histórico UI */
+    /* ===== Histórico UI ===== */
     function abrirHistorico(e){
       if (e) e.stopPropagation(); pauseOCR(true);
       const el = document.getElementById('historicoModal');
@@ -508,7 +522,7 @@
     document.getElementById('historicoModal').addEventListener('click', (e)=>{ if (e.target.id==='historicoModal') fecharHistorico(); });
     document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { fecharHistorico(); fecharFeed(); } });
 
-    /* OCR */
+    /* ===== OCR ===== */
     async function capturarImagemEProcessar() {
       if (ocrPaused || isProcessing || video.videoWidth === 0) return;
       isProcessing = true; desenharROI();
@@ -554,9 +568,9 @@
       finally { isProcessing = false; }
     }
 
-    /* ===== Chat/Feed local ===== */
+    /* ===== Chat/Feed ===== */
     const FEED_LIMIT = 200;
-    let feed = []; // {id, ts, valor, img, coords:{lat,lng}|null, rating:-1|0|1}
+    let feed = []; // it: {type:'post'|'msg', ...}
 
     function loadFeed(){
       try {
@@ -567,108 +581,149 @@
     function saveFeed(){
       localStorage.setItem(LS_KEYS.feed, JSON.stringify(feed));
     }
-    function pushFeed(post){
-      feed.unshift(post);
+    function pushFeed(item){
+      feed.unshift(item);
       if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
       saveFeed();
     }
 
-    function abrirFeed(e){
+    async function abrirFeed(e){
       if (e) e.stopPropagation(); pauseOCR(true);
-      renderFeed();
-      document.getElementById('feedModal').classList.add('show');
-    }
-    function fecharFeed(){ document.getElementById('feedModal').classList.remove('show'); pauseOCR(false); }
-    document.getElementById('feedModal').addEventListener('click', (e)=>{ if (e.target.id==='feedModal') fecharFeed(); });
 
-    function renderFeed(){
+      // Atualiza dos posts da nuvem (mensagens continuam locais por enquanto)
+      if (SYNC_TO_CLOUD) {
+        try {
+          const res = await fetch(`${API_BASE}/api/feed?deviceId=${encodeURIComponent(deviceId)}`);
+          const data = await res.json();
+          if (data && data.ok && Array.isArray(data.posts)) {
+            const newPosts = data.posts.map(p => ({
+              type:'post', id: p.id, ts: p.ts, valor: p.valor, img: p.img, coords: p.coords, rating: p.rating || 0,
+              status: p.status || 'pending', valid: p.valid || {yes:0,no:0}
+            }));
+            const msgs = feed.filter(it => it.type === 'msg'); // preserva mensagens locais
+            feed = [...newPosts, ...msgs].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+            if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
+            saveFeed();
+          }
+        } catch(e){ console.warn('cloud feed erro:', e); }
+      }
+
+      const pendentes = []; // (slot para validações futuras)
+      renderFeed(pendentes);
+      document.getElementById('feedModal').classList.add('show');
+
+      // foco no input do chat
+      const ci = document.getElementById('chatInput');
+      if (ci) { ci.focus(); ci.addEventListener('keydown', onChatKey); }
+    }
+    function fecharFeed(){
+      document.getElementById('feedModal').classList.remove('show'); pauseOCR(false);
+      const ci = document.getElementById('chatInput');
+      if (ci) ci.removeEventListener('keydown', onChatKey);
+    }
+    function onChatKey(e){ if (e.key === 'Enter') enviarMensagem(); }
+
+    function renderFeed(pendentes=[]){
       const lista = document.getElementById('feedLista');
       lista.innerHTML = '';
-      if (feed.length === 0){
+
+      // (Opcional) seção de validações proximas no futuro
+      if (pendentes.length){
+        const head = document.createElement('div');
+        head.className = 'hist-item';
+        head.innerHTML = '<b>Ajude a validar preços perto de você</b>';
+        lista.appendChild(head);
+        // ... cards de pendentes aqui no futuro ...
+      }
+
+      // Render dos itens (mensagens + posts)
+      const items = [...feed].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+      if (!items.length){
         const empty = document.createElement('div');
         empty.className = 'hist-item';
-        empty.textContent = 'Seu chat está vazio. Ative “Enviar para o chat” e confirme um preço pelo OCR.';
+        empty.textContent = 'Seu chat está vazio. Ative “Enviar para o chat” para postar fotos, ou escreva uma mensagem abaixo.';
         lista.appendChild(empty);
         return;
       }
-      feed.forEach(p=>{
-        const card = document.createElement('div');
-        card.className = 'post';
-        const img = document.createElement('img');
-        img.className = 'post-img';
-        img.src = p.img;
-        img.alt = `Preço registrado: R$ ${Number(p.valor).toFixed(2)}`;
 
-        const body = document.createElement('div');
-        body.className = 'post-body';
+      items.forEach(p=>{
+        if (p.type === 'msg'){
+          const card = document.createElement('div');
+          card.className = 'msg';
+          const text = document.createElement('div');
+          text.className = 'msg-text';
+          text.textContent = p.text || '';
+          const meta = document.createElement('div');
+          meta.className = 'msg-meta';
+          const when = new Date(p.ts).toLocaleString('pt-BR');
+          meta.textContent = when + (p.coords ? ' · com localização' : '');
+          const actions = document.createElement('div');
+          actions.className = 'actions';
+          const btnMap = document.createElement('button');
+          btnMap.className = 'btn-ghost'; btnMap.textContent = '📍 Rota';
+          if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
+          else { btnMap.disabled = true; }
+          const btnShare = document.createElement('button');
+          btnShare.className = 'btn-ghost'; btnShare.textContent = '🔗 Compartilhar';
+          btnShare.onclick = ()=> shareMessage(p);
+          actions.appendChild(btnMap); actions.appendChild(btnShare);
 
-        const title = document.createElement('div');
-        title.className = 'post-title';
-        const price = document.createElement('div');
-        price.className = 'price';
-        price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
-        const when = document.createElement('div');
-        when.className = 'loc';
-        const d = new Date(p.ts);
-        when.textContent = d.toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
+          card.appendChild(text);
+          card.appendChild(meta);
+          card.appendChild(actions);
+          lista.appendChild(card);
+        } else { // post (foto + preço)
+          const card = document.createElement('div'); card.className = 'post';
+          const img = document.createElement('img'); img.className = 'post-img'; img.src = p.img; img.alt = `Preço: R$ ${Number(p.valor).toFixed(2)}`;
+          const body = document.createElement('div'); body.className = 'post-body';
+          const title = document.createElement('div'); title.className='post-title';
+          const price = document.createElement('div'); price.className='price'; price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
+          const when = document.createElement('div'); when.className='loc'; when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
+          title.appendChild(price); title.appendChild(when);
 
-        title.appendChild(price);
-        title.appendChild(when);
+          const badge = document.createElement('div'); badge.className='loc';
+          if (p.status === 'confirmed') badge.textContent = `✔ Validado por ${p.valid?.yes||0}`;
+          else if (p.status === 'rejected') badge.textContent = `⚠ Reprovado (${p.valid?.no||0})`;
+          else badge.textContent = `⏳ Aguardando validação`;
 
-        const actions = document.createElement('div');
-        actions.className = 'actions';
+          const actions = document.createElement('div'); actions.className='actions';
+          const btnOk = document.createElement('button'); btnOk.className='btn-ghost' + (p.rating === 1 ? ' active' : ''); btnOk.textContent='👍 Bom';
+          btnOk.onclick = ()=> setRating(p.id, 1);
+          const btnBad = document.createElement('button'); btnBad.className='btn-ghost' + (p.rating === -1 ? ' active' : ''); btnBad.textContent='👎 Ruim';
+          btnBad.onclick = ()=> setRating(p.id, -1);
+          const btnMap = document.createElement('button'); btnMap.className='btn-ghost'; btnMap.textContent='📍 Rota';
+          if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
+          else { btnMap.disabled = true; }
+          const btnShare = document.createElement('button'); btnShare.className='btn-ghost'; btnShare.textContent='🔗 Compartilhar';
+          btnShare.onclick = ()=> sharePost(p);
+          actions.appendChild(btnOk); actions.appendChild(btnBad); actions.appendChild(btnMap); actions.appendChild(btnShare);
 
-        const btnOk = document.createElement('button');
-        btnOk.className = 'btn-ghost' + (p.rating === 1 ? ' active' : '');
-        btnOk.textContent = '👍 Bom';
-        btnOk.onclick = ()=> setRating(p.id, p.rating === 1 ? 0 : 1);
+          body.appendChild(title);
+          body.appendChild(badge);
+          body.appendChild(actions);
 
-        const btnBad = document.createElement('button');
-        btnBad.className = 'btn-ghost' + (p.rating === -1 ? ' active' : '');
-        btnBad.textContent = '👎 Ruim';
-        btnBad.onclick = ()=> setRating(p.id, p.rating === -1 ? 0 : -1);
-
-        const btnMap = document.createElement('button');
-        btnMap.className = 'btn-ghost';
-        btnMap.textContent = '📍 Rota';
-        if (p.coords){
-          btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank');
-        } else {
-          btnMap.disabled = true;
+          card.appendChild(img); card.appendChild(body);
+          lista.appendChild(card);
         }
-
-        const btnShare = document.createElement('button');
-        btnShare.className = 'btn-ghost';
-        btnShare.textContent = '🔗 Compartilhar';
-        btnShare.onclick = ()=> sharePost(p);
-
-        actions.appendChild(btnOk);
-        actions.appendChild(btnBad);
-        actions.appendChild(btnMap);
-        actions.appendChild(btnShare);
-
-        body.appendChild(title);
-        body.appendChild(actions);
-
-        card.appendChild(img);
-        card.appendChild(body);
-        lista.appendChild(card);
       });
     }
 
-    function setRating(id, v){
-      const idx = feed.findIndex(p=>p.id===id);
-      if (idx === -1) return;
-      feed[idx].rating = v;
-      saveFeed();
-      renderFeed();
-    }
-
-    async function sharePost(p){
+    function sharePost(p){
       const text = `Oferta: R$ ${Number(p.valor).toFixed(2)}${p.coords ? `\nMapa: ${mapsRoute(p.coords.lat, p.coords.lng)}` : ''}`;
       try{
         if (navigator.share){
-          await navigator.share({ text, title: 'Smart Cart', url: p.coords ? mapsRoute(p.coords.lat, p.coords.lng) : undefined });
+          navigator.share({ text, title: 'Smart Cart', url: p.coords ? mapsRoute(p.coords.lat, p.coords.lng) : undefined });
+        } else {
+          const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+          window.open(url, '_blank');
+        }
+      }catch(e){ console.warn('share erro:', e); }
+    }
+    function shareMessage(p){
+      const text = `${p.text}${p.coords ? `\nMapa: ${mapsRoute(p.coords.lat, p.coords.lng)}` : ''}`;
+      try{
+        if (navigator.share){
+          navigator.share({ text, title: 'Smart Cart' });
         } else {
           const url = 'https://wa.me/?text=' + encodeURIComponent(text);
           window.open(url, '_blank');
@@ -676,6 +731,49 @@
       }catch(e){ console.warn('share erro:', e); }
     }
 
+    function setRating(id, v){
+      const idx = feed.findIndex(p=>p.type==='post' && p.id===id);
+      if (idx === -1) return;
+      // alterna: se já está, zera
+      feed[idx].rating = (feed[idx].rating === v) ? 0 : v;
+      saveFeed();
+      renderFeed();
+
+      if (SYNC_TO_CLOUD) {
+        fetch(`${API_BASE}/api/rating`, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ deviceId, id, rating: feed[idx].rating })
+        }).catch(e=>console.warn('cloud rating erro:', e));
+      }
+    }
+
+    /* ===== Enviar mensagem de texto ===== */
+    function enviarMensagem(){
+      const input = document.getElementById('chatInput');
+      let text = (input.value || '').trim();
+      if (!text) { input.focus(); return; }
+      const wantLoc = document.getElementById('chatLocToggle').checked;
+
+      const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
+      const ts = new Date().toISOString();
+
+      const add = (coords)=> {
+        pushFeed({ type:'msg', id, ts, text, coords: coords || null, author: deviceId });
+        renderFeed();
+        input.value = ''; input.focus();
+      };
+
+      if (wantLoc && navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(
+          pos => add({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => add(null),
+          { enableHighAccuracy:true, timeout:7000 }
+        );
+      } else add(null);
+    }
+
+    /* ===== Limpar chat ===== */
     function limparFeed(){
       if (!confirm('Limpar todo o chat?')) return;
       feed = [];
@@ -683,7 +781,7 @@
       renderFeed();
     }
 
-    /* Captura foto + salva em leituras + envia para chat local (se opt-in) */
+    /* ===== Captura foto + envia para chat (post) ===== */
     async function capturarEEnviarImagem(valor) {
       try {
         // snapshot original
@@ -691,7 +789,7 @@
         fullCanvas.width = video.videoWidth;
         fullCanvas.height = video.videoHeight;
         fullCanvas.getContext('2d').drawImage(video, 0, 0);
-        // thumb compacta (para o feed)
+        // thumb compacta para o feed
         const maxW = 640;
         let tw = fullCanvas.width, th = fullCanvas.height;
         if (tw > maxW){ const s = maxW / tw; tw = Math.max(1, Math.round(tw*s)); th = Math.max(1, Math.round(th*s)); }
@@ -700,38 +798,48 @@
         thumb.getContext('2d').drawImage(fullCanvas, 0, 0, tw, th);
         const imageThumb = thumb.toDataURL('image/jpeg', 0.7);
 
-        const fullImage = fullCanvas.toDataURL('image/jpeg', 0.7); // se quiser usar em outro lugar
+        if (shareToChat) {
+          // pega localização (opcional)
+          navigator.geolocation.getCurrentPosition(async (position) => {
+            const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
 
-        navigator.geolocation.getCurrentPosition(async (position) => {
-          const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+            // chat local
+            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords, rating: 0,
+                       status:'pending', valid:{yes:0,no:0} });
 
-          // (opcional) salvar em "leituras" do Firestore — pode falhar se seu projeto estiver off
-          try { await db.collection("leituras").add({
-            valor: valor, imagem: fullImage, datahora: new Date().toISOString(), localizacao: coords
-          }); } catch(e){ /* ignore se der erro */ }
+            // nuvem (opcional)
+            if (SYNC_TO_CLOUD) {
+              try {
+                await fetch(`${API_BASE}/api/post`, {
+                  method: 'POST',
+                  headers: { 'Content-Type':'application/json' },
+                  body: JSON.stringify({ deviceId, valor:+valor, coords, imageData:imageThumb })
+                });
+              } catch(e){ console.warn('cloud post erro:', e); }
+            }
+          }, async () => {
+            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords: null, rating: 0,
+                       status:'pending', valid:{yes:0,no:0} });
 
-          // Chat local (timeline)
-          if (shareToChat) {
-            pushFeed({ id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords, rating: 0 });
-          }
-        }, async () => {
-          // Sem geo
-          try { await db.collection("leituras").add({
-            valor: valor, imagem: fullImage, datahora: new Date().toISOString(), localizacao: null
-          }); } catch(e){ /* ignore */ }
-
-          if (shareToChat) {
-            pushFeed({ id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords: null, rating: 0 });
-          }
-        });
+            if (SYNC_TO_CLOUD) {
+              try {
+                await fetch(`${API_BASE}/api/post`, {
+                  method: 'POST',
+                  headers: { 'Content-Type':'application/json' },
+                  body: JSON.stringify({ deviceId, valor:+valor, coords:null, imageData:imageThumb })
+                });
+              } catch(e){ console.warn('cloud post erro:', e); }
+            }
+          });
+        }
       } catch (e) {
         console.warn('snapshot/geo erro:', e);
       }
     }
 
-    // Inicialização
+    // ===== Inicialização =====
     setInterval(capturarImagemEProcessar, 1200);
     iniciarCamera();
     loadState();
@@ -739,6 +847,10 @@
   </script>
 </body>
 </html>
+
+
+
+
 
 
 
