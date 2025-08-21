@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -140,9 +141,21 @@
     }
     .modal-title{ font-weight:700; letter-spacing:.3px }
     .modal-body{ overflow:auto; padding-top:10px; }
+
+    /* RODAPÉ DO CHAT AJUSTADO */
     .modal-foot{
-      border-top:1px dashed var(--card-border); margin-top:10px; padding-top:10px;
-      display:flex; gap:8px; align-items:center; position:sticky; bottom:0; background:var(--card);
+      border-top:1px dashed var(--card-border);
+      margin-top:10px; padding:10px;
+      position:sticky; bottom:0; background:var(--card);
+      display:grid;
+      grid-template-columns: 1fr auto auto auto; /* [input] [toggle] [foto] [enviar] */
+      gap:8px; align-items:center;
+    }
+    .foot-input{ flex:1; min-width:0; }
+    .foot-tog{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); user-select:none; white-space:nowrap; }
+    @media (max-width:600px){
+      .modal-foot{ grid-template-columns: 1fr; }
+      .foot-tog, .modal-foot .btn{ width:100%; justify-self:stretch; }
     }
 
     /* Histórico */
@@ -155,8 +168,6 @@
     .pill{ padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--card-border); }
     .pill.add{ color:#d9ffe9; background: rgba(24,42,30,0.7); border-color: rgba(72,140,92,0.45) }
     .pill.sub{ color:#ffe0e0; background: rgba(52,24,24,0.6); border-color: rgba(164,74,74,0.45) }
-    .hist-val{ font-weight:700 }
-    .hist-time{ color: var(--muted); font-size:12px }
 
     /* ===== Chat/Feed ===== */
     .feed{ display:flex; flex-direction:column; gap:12px; }
@@ -174,7 +185,6 @@
       background: rgba(8,12,28,0.35); border:1px solid var(--card-border);
       color:var(--text); padding:8px 10px; border-radius:10px; cursor:pointer;
     }
-    .btn-ghost.active{ outline: 2px solid rgba(110,168,254,0.35); }
     .btn-ghost[disabled]{ opacity:.5; cursor:not-allowed }
 
     /* Mensagens de texto no chat */
@@ -184,8 +194,6 @@
     }
     .msg-text{ white-space:pre-wrap; }
     .msg-meta{ font-size:12px; color:var(--muted); display:flex; gap:10px; align-items:center; }
-    .foot-input{ flex:1; }
-    .foot-tog{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); user-select:none; }
   </style>
 </head>
 <body>
@@ -287,7 +295,10 @@
         <label class="foot-tog">
           <input type="checkbox" id="chatLocToggle"> 📍 incluir localização
         </label>
-        <button class="btn ok" onclick="enviarMensagem()">Enviar</button>
+        <button class="btn" onclick="abrirPickerFoto()">📷 Foto</button>
+        <button class="btn ok" onclick="enviarMensagem()">📨 Enviar</button>
+        <!-- input de arquivo escondido -->
+        <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
       </div>
     </div>
   </div>
@@ -436,7 +447,7 @@
       if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
       registrar('add', valor);
       saveState();
-      capturarEEnviarImagem(valor);
+      capturarEEnviarImagem(valor); // mantém a captura automática ao adicionar preço (opcional)
     }
 
     function adicionarManual() {
@@ -665,14 +676,23 @@
           card.appendChild(meta);
           card.appendChild(actions);
           lista.appendChild(card);
-        } else { // post (foto + preço)
+        } else { // post (foto [+ preço opcional])
           const card = document.createElement('div'); card.className = 'post';
-          const img = document.createElement('img'); img.className = 'post-img'; img.src = p.img; img.alt = `Preço: R$ ${Number(p.valor).toFixed(2)}`;
+          const img = document.createElement('img'); img.className = 'post-img'; img.src = p.img; img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
           const body = document.createElement('div'); body.className = 'post-body';
           const title = document.createElement('div'); title.className='post-title';
-          const price = document.createElement('div'); price.className='price'; price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
+
+          const left = document.createElement('div');
+          if (typeof p.valor === 'number' && isFinite(p.valor) && p.valor > 0){
+            const price = document.createElement('div'); price.className='price'; price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
+            left.appendChild(price);
+          } else {
+            const label = document.createElement('div'); label.className='loc'; label.textContent = '📷 Foto';
+            left.appendChild(label);
+          }
+
           const when = document.createElement('div'); when.className='loc'; when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
-          title.appendChild(price); title.appendChild(when);
+          title.appendChild(left); title.appendChild(when);
 
           const actions = document.createElement('div'); actions.className='actions';
           const btnMap = document.createElement('button'); btnMap.className='btn-ghost'; btnMap.textContent='📍 Rota';
@@ -692,12 +712,13 @@
     }
 
     function sharePost(p){
-      const text = `Oferta: R$ ${Number(p.valor).toFixed(2)}${p.coords ? `\nMapa: ${mapsRoute(p.coords.lat, p.coords.lng)}` : ''}`;
+      const precoTxt = (typeof p.valor === 'number' && isFinite(p.valor) && p.valor > 0) ? `Oferta: R$ ${Number(p.valor).toFixed(2)}\n` : '';
+      const text = `${precoTxt}${p.coords ? `Mapa: ${mapsRoute(p.coords.lat, p.coords.lng)}` : ''}`.trim();
       try{
         if (navigator.share){
-          navigator.share({ text, title: 'Smart Cart', url: p.coords ? mapsRoute(p.coords.lat, p.coords.lng) : undefined });
+          navigator.share({ text: text || 'Foto do produto', title: 'Smart Cart', url: p.coords ? mapsRoute(p.coords.lat, p.coords.lng) : undefined });
         } else {
-          const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+          const url = 'https://wa.me/?text=' + encodeURIComponent(text || 'Foto do produto');
           window.open(url, '_blank');
         }
       }catch(e){ console.warn('share erro:', e); }
@@ -739,6 +760,107 @@
       } else add(null);
     }
 
+    /* ===== Botão de foto no chat ===== */
+    function abrirPickerFoto(){
+      const input = document.getElementById('photoInput');
+      if (!input) return;
+      input.value = ''; // reset para permitir mesma foto novamente
+      input.click();
+    }
+
+    document.getElementById('photoInput').addEventListener('change', async (e)=>{
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      await handleFotoSelecionada(file);
+    });
+
+    async function handleFotoSelecionada(file){
+      try{
+        // Lê a imagem
+        const imgDataUrl = await fileToDataURL(file);
+        const compressed = await compressImage(imgDataUrl, 1280); // largura máx 1280
+
+        // Preço opcional
+        let priceRaw = prompt('Preço (opcional): ex. 10.50');
+        let valor = null;
+        if (priceRaw !== null){
+          const v = parseFloat((priceRaw || '').replace(',', '.'));
+          if (Number.isFinite(v) && v > 0) valor = v;
+        }
+
+        const wantLoc = document.getElementById('chatLocToggle').checked;
+        const postNow = (coords)=> {
+          pushFeed({
+            type:'post',
+            id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+            ts: new Date().toISOString(),
+            valor: (valor !== null ? +valor : undefined),
+            img: compressed,
+            coords: coords || null
+          });
+          renderFeed();
+        };
+
+        if (wantLoc && navigator.geolocation){
+          navigator.geolocation.getCurrentPosition(
+            pos => postNow({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => postNow(null),
+            { enableHighAccuracy:true, timeout:7000 }
+          );
+        } else {
+          postNow(null);
+        }
+
+        // (Opcional) enviar à nuvem
+        if (SYNC_TO_CLOUD){
+          try{
+            await fetch(`${API_BASE}/api/post`, {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json' },
+              body: JSON.stringify({
+                deviceId, valor: (valor !== null ? +valor : null), coords: null, imageData: compressed
+              })
+            });
+          }catch(e){ console.warn('cloud post erro:', e); }
+        }
+
+      }catch(e){
+        console.warn('foto-picker erro:', e);
+        alert('Não foi possível processar a imagem.');
+      }
+    }
+
+    function fileToDataURL(file){
+      return new Promise((resolve, reject)=>{
+        const fr = new FileReader();
+        fr.onload = ()=> resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function compressImage(dataUrl, maxW){
+      return new Promise((resolve)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let w = img.width, h = img.height;
+          if (w > maxW){
+            const s = maxW / w;
+            w = Math.round(w*s); h = Math.round(h*s);
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          // qualidade 0.7
+          const out = c.toDataURL('image/jpeg', 0.7);
+          resolve(out);
+        };
+        img.onerror = ()=> resolve(dataUrl); // fallback: sem compressão
+        img.src = dataUrl;
+      });
+    }
+
     /* ===== Limpar chat ===== */
     function limparFeed(){
       if (!confirm('Limpar todo o chat?')) return;
@@ -747,15 +869,16 @@
       renderFeed();
     }
 
-    /* ===== Captura foto + envia para chat (post) ===== */
+    /* ===== Captura foto + envia para chat (post) automática ao somar ===== */
     async function capturarEEnviarImagem(valor) {
       try {
-        // snapshot original
+        // snapshot da câmera
         const fullCanvas = document.createElement('canvas');
         fullCanvas.width = video.videoWidth;
         fullCanvas.height = video.videoHeight;
         fullCanvas.getContext('2d').drawImage(video, 0, 0);
-        // thumb compacta para o feed
+
+        // thumb compacta
         const maxW = 640;
         let tw = fullCanvas.width, th = fullCanvas.height;
         if (tw > maxW){ const s = maxW / tw; tw = Math.max(1, Math.round(tw*s)); th = Math.max(1, Math.round(th*s)); }
@@ -765,11 +888,9 @@
         const imageThumb = thumb.toDataURL('image/jpeg', 0.7);
 
         if (shareToChat) {
-          // pega localização (opcional)
+          // localização opcional
           navigator.geolocation.getCurrentPosition(async (position) => {
             const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-
-            // chat local (sem rating/validação)
             pushFeed({
               type:'post',
               id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
@@ -778,8 +899,6 @@
               img: imageThumb,
               coords
             });
-
-            // nuvem (opcional)
             if (SYNC_TO_CLOUD) {
               try {
                 await fetch(`${API_BASE}/api/post`, {
@@ -790,7 +909,6 @@
               } catch(e){ console.warn('cloud post erro:', e); }
             }
           }, async () => {
-            // sem coords
             pushFeed({
               type:'post',
               id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
@@ -799,7 +917,6 @@
               img: imageThumb,
               coords: null
             });
-
             if (SYNC_TO_CLOUD) {
               try {
                 await fetch(`${API_BASE}/api/post`, {
