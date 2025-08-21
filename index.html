@@ -590,15 +590,19 @@
     async function abrirFeed(e){
       if (e) e.stopPropagation(); pauseOCR(true);
 
-      // Atualiza dos posts da nuvem (mensagens continuam locais por enquanto)
+      // Atualiza dos posts da nuvem (sem rating/validação)
       if (SYNC_TO_CLOUD) {
         try {
           const res = await fetch(`${API_BASE}/api/feed?deviceId=${encodeURIComponent(deviceId)}`);
           const data = await res.json();
           if (data && data.ok && Array.isArray(data.posts)) {
             const newPosts = data.posts.map(p => ({
-              type:'post', id: p.id, ts: p.ts, valor: p.valor, img: p.img, coords: p.coords, rating: p.rating || 0,
-              status: p.status || 'pending', valid: p.valid || {yes:0,no:0}
+              type:'post',
+              id: p.id,
+              ts: p.ts,
+              valor: p.valor,
+              img: p.img,
+              coords: p.coords || null
             }));
             const msgs = feed.filter(it => it.type === 'msg'); // preserva mensagens locais
             feed = [...newPosts, ...msgs].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
@@ -608,8 +612,7 @@
         } catch(e){ console.warn('cloud feed erro:', e); }
       }
 
-      const pendentes = []; // (slot para validações futuras)
-      renderFeed(pendentes);
+      renderFeed();
       document.getElementById('feedModal').classList.add('show');
 
       // foco no input do chat
@@ -623,20 +626,10 @@
     }
     function onChatKey(e){ if (e.key === 'Enter') enviarMensagem(); }
 
-    function renderFeed(pendentes=[]){
+    function renderFeed(){
       const lista = document.getElementById('feedLista');
       lista.innerHTML = '';
 
-      // (Opcional) seção de validações proximas no futuro
-      if (pendentes.length){
-        const head = document.createElement('div');
-        head.className = 'hist-item';
-        head.innerHTML = '<b>Ajude a validar preços perto de você</b>';
-        lista.appendChild(head);
-        // ... cards de pendentes aqui no futuro ...
-      }
-
-      // Render dos itens (mensagens + posts)
       const items = [...feed].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
       if (!items.length){
         const empty = document.createElement('div');
@@ -681,25 +674,15 @@
           const when = document.createElement('div'); when.className='loc'; when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
           title.appendChild(price); title.appendChild(when);
 
-          const badge = document.createElement('div'); badge.className='loc';
-          if (p.status === 'confirmed') badge.textContent = `✔ Validado por ${p.valid?.yes||0}`;
-          else if (p.status === 'rejected') badge.textContent = `⚠ Reprovado (${p.valid?.no||0})`;
-          else badge.textContent = `⏳ Aguardando validação`;
-
           const actions = document.createElement('div'); actions.className='actions';
-          const btnOk = document.createElement('button'); btnOk.className='btn-ghost' + (p.rating === 1 ? ' active' : ''); btnOk.textContent='👍 Bom';
-          btnOk.onclick = ()=> setRating(p.id, 1);
-          const btnBad = document.createElement('button'); btnBad.className='btn-ghost' + (p.rating === -1 ? ' active' : ''); btnBad.textContent='👎 Ruim';
-          btnBad.onclick = ()=> setRating(p.id, -1);
           const btnMap = document.createElement('button'); btnMap.className='btn-ghost'; btnMap.textContent='📍 Rota';
           if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
           else { btnMap.disabled = true; }
           const btnShare = document.createElement('button'); btnShare.className='btn-ghost'; btnShare.textContent='🔗 Compartilhar';
           btnShare.onclick = ()=> sharePost(p);
-          actions.appendChild(btnOk); actions.appendChild(btnBad); actions.appendChild(btnMap); actions.appendChild(btnShare);
+          actions.appendChild(btnMap); actions.appendChild(btnShare);
 
           body.appendChild(title);
-          body.appendChild(badge);
           body.appendChild(actions);
 
           card.appendChild(img); card.appendChild(body);
@@ -729,23 +712,6 @@
           window.open(url, '_blank');
         }
       }catch(e){ console.warn('share erro:', e); }
-    }
-
-    function setRating(id, v){
-      const idx = feed.findIndex(p=>p.type==='post' && p.id===id);
-      if (idx === -1) return;
-      // alterna: se já está, zera
-      feed[idx].rating = (feed[idx].rating === v) ? 0 : v;
-      saveFeed();
-      renderFeed();
-
-      if (SYNC_TO_CLOUD) {
-        fetch(`${API_BASE}/api/rating`, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify({ deviceId, id, rating: feed[idx].rating })
-        }).catch(e=>console.warn('cloud rating erro:', e));
-      }
     }
 
     /* ===== Enviar mensagem de texto ===== */
@@ -803,10 +769,15 @@
           navigator.geolocation.getCurrentPosition(async (position) => {
             const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
 
-            // chat local
-            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords, rating: 0,
-                       status:'pending', valid:{yes:0,no:0} });
+            // chat local (sem rating/validação)
+            pushFeed({
+              type:'post',
+              id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+              ts: new Date().toISOString(),
+              valor: +valor,
+              img: imageThumb,
+              coords
+            });
 
             // nuvem (opcional)
             if (SYNC_TO_CLOUD) {
@@ -819,9 +790,15 @@
               } catch(e){ console.warn('cloud post erro:', e); }
             }
           }, async () => {
-            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-                       ts: new Date().toISOString(), valor: +valor, img: imageThumb, coords: null, rating: 0,
-                       status:'pending', valid:{yes:0,no:0} });
+            // sem coords
+            pushFeed({
+              type:'post',
+              id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+              ts: new Date().toISOString(),
+              valor: +valor,
+              img: imageThumb,
+              coords: null
+            });
 
             if (SYNC_TO_CLOUD) {
               try {
@@ -847,6 +824,24 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
