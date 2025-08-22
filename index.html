@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -142,20 +143,19 @@
     .modal-title{ font-weight:700; letter-spacing:.3px }
     .modal-body{ overflow:auto; padding-top:10px; }
 
-    /* RODAPÉ DO CHAT AJUSTADO */
+    /* RODAPÉ DO CHAT AJUSTADO (sem toggle de localização) */
     .modal-foot{
       border-top:1px dashed var(--card-border);
       margin-top:10px; padding:10px;
       position:sticky; bottom:0; background:var(--card);
       display:grid;
-      grid-template-columns: 1fr auto auto auto; /* [input] [toggle] [foto] [enviar] */
+      grid-template-columns: 1fr auto auto; /* [input] [foto] [enviar] */
       gap:8px; align-items:center;
     }
     .foot-input{ flex:1; min-width:0; }
-    .foot-tog{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--muted); user-select:none; white-space:nowrap; }
     @media (max-width:600px){
       .modal-foot{ grid-template-columns: 1fr; }
-      .foot-tog, .modal-foot .btn{ width:100%; justify-self:stretch; }
+      .modal-foot .btn, .foot-input{ width:100%; justify-self:stretch; }
     }
 
     /* Histórico */
@@ -236,7 +236,7 @@
       <div class="row">
         <input id="manualInput" class="input" type="number" step="0.01" placeholder="Digite o valor (ex: 10.50)">
         <button class="btn ok" onclick="adicionarManual()">➕ Adicionar</button>
-        <button class="btn warn" onclick="diminuirManual()">➖ Diminuir</button>
+        <button class="btn warn" onclick="diminuirManual()">➖ Subtrair</button>
         <button class="btn err" onclick="zerarTotal()">🧹 Zerar Total</button>
       </div>
 
@@ -245,13 +245,6 @@
         <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer último</button>
         <button class="btn" onclick="abrirHistorico(event)">📜 Histórico</button>
         <button class="btn" onclick="abrirFeed(event)">💬 Chat</button>
-      </div>
-
-      <div class="row" style="align-items:center">
-        <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
-          <input type="checkbox" id="shareChatToggle" onchange="toggleShareChat(this.checked)">
-          Enviar para o chat
-        </label>
       </div>
 
       <div id="total">
@@ -292,9 +285,6 @@
       </div>
       <div class="modal-foot">
         <input id="chatInput" class="input foot-input" type="text" placeholder="Escreva uma mensagem..." />
-        <label class="foot-tog">
-          <input type="checkbox" id="chatLocToggle"> 📍 incluir localização
-        </label>
         <button class="btn" onclick="abrirPickerFoto()">📷 Foto</button>
         <button class="btn ok" onclick="enviarMensagem()">📨 Enviar</button>
         <!-- input de arquivo escondido -->
@@ -372,7 +362,8 @@
     }
 
     /* ===== Persistência local ===== */
-    const LS_KEYS = { total: 'sc_total', valores: 'sc_valores', historico: 'sc_hist', feed: 'sc_feed', share: 'sc_share_chat' };
+    // (sem chave 'share' — sempre envia para o chat)
+    const LS_KEYS = { total: 'sc_total', valores: 'sc_valores', historico: 'sc_hist', feed: 'sc_feed' };
 
     function saveState(){
       localStorage.setItem(LS_KEYS.total, String(total));
@@ -406,10 +397,9 @@
       loadFeed();
     }
 
-    /* ===== Toggle "Enviar para o chat" ===== */
-    let shareToChat = JSON.parse(localStorage.getItem(LS_KEYS.share) || 'false');
-    function toggleShareChat(v){ shareToChat = !!v; localStorage.setItem(LS_KEYS.share, JSON.stringify(shareToChat)); }
-    function initShareToggle(){ const el = document.getElementById('shareChatToggle'); if (el) el.checked = !!shareToChat; }
+    /* ===== Config de envio automático ===== */
+    // Enviar para o chat: sempre ligado
+    const shareToChat = true;
     function mapsRoute(lat, lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
 
     /* ===== Controle OCR pausa/retoma ===== */
@@ -447,7 +437,7 @@
       if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
       registrar('add', valor);
       saveState();
-      capturarEEnviarImagem(valor); // mantém a captura automática ao adicionar preço (opcional)
+      capturarEEnviarImagem(valor); // mantém a captura automática ao adicionar preço (sempre com envio ativo)
     }
 
     function adicionarManual() {
@@ -641,74 +631,78 @@
       const lista = document.getElementById('feedLista');
       lista.innerHTML = '';
 
-      const items = [...feed].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+      // ORDEM ASCENDENTE: antigos → novos
+      const items = [...feed].sort((a,b)=> new Date(a.ts) - new Date(b.ts));
+
       if (!items.length){
         const empty = document.createElement('div');
         empty.className = 'hist-item';
-        empty.textContent = 'Seu chat está vazio. Ative “Enviar para o chat” para postar fotos, ou escreva uma mensagem abaixo.';
+        empty.textContent = 'Seu chat está vazio. Envie uma mensagem ou poste uma foto abaixo.';
         lista.appendChild(empty);
-        return;
+      } else {
+        items.forEach(p=>{
+          if (p.type === 'msg'){
+            const card = document.createElement('div');
+            card.className = 'msg';
+            const text = document.createElement('div');
+            text.className = 'msg-text';
+            text.textContent = p.text || '';
+            const meta = document.createElement('div');
+            meta.className = 'msg-meta';
+            const when = new Date(p.ts).toLocaleString('pt-BR');
+            meta.textContent = when + (p.coords ? ' · com localização' : '');
+            const actions = document.createElement('div');
+            actions.className = 'actions';
+            const btnMap = document.createElement('button');
+            btnMap.className = 'btn-ghost'; btnMap.textContent = '📍 Rota';
+            if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
+            else { btnMap.disabled = true; }
+            const btnShare = document.createElement('button');
+            btnShare.className = 'btn-ghost'; btnShare.textContent = '🔗 Compartilhar';
+            btnShare.onclick = ()=> shareMessage(p);
+            actions.appendChild(btnMap); actions.appendChild(btnShare);
+
+            card.appendChild(text);
+            card.appendChild(meta);
+            card.appendChild(actions);
+            lista.appendChild(card);
+          } else { // post (foto [+ preço opcional])
+            const card = document.createElement('div'); card.className = 'post';
+            const img = document.createElement('img'); img.className = 'post-img'; img.src = p.img; img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
+            const body = document.createElement('div'); body.className = 'post-body';
+            const title = document.createElement('div'); title.className='post-title';
+
+            const left = document.createElement('div');
+            if (typeof p.valor === 'number' && isFinite(p.valor) && p.valor > 0){
+              const price = document.createElement('div'); price.className='price'; price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
+              left.appendChild(price);
+            } else {
+              const label = document.createElement('div'); label.className='loc'; label.textContent = '📷 Foto';
+              left.appendChild(label);
+            }
+
+            const when = document.createElement('div'); when.className='loc'; when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
+            title.appendChild(left); title.appendChild(when);
+
+            const actions = document.createElement('div'); actions.className='actions';
+            const btnMap = document.createElement('button'); btnMap.className='btn-ghost'; btnMap.textContent='📍 Rota';
+            if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
+            else { btnMap.disabled = true; }
+            const btnShare = document.createElement('button'); btnShare.className='btn-ghost'; btnShare.textContent='🔗 Compartilhar';
+            btnShare.onclick = ()=> sharePost(p);
+            actions.appendChild(btnMap); actions.appendChild(btnShare);
+
+            body.appendChild(title);
+            body.appendChild(actions);
+
+            card.appendChild(img); card.appendChild(body);
+            lista.appendChild(card);
+          }
+        });
       }
 
-      items.forEach(p=>{
-        if (p.type === 'msg'){
-          const card = document.createElement('div');
-          card.className = 'msg';
-          const text = document.createElement('div');
-          text.className = 'msg-text';
-          text.textContent = p.text || '';
-          const meta = document.createElement('div');
-          meta.className = 'msg-meta';
-          const when = new Date(p.ts).toLocaleString('pt-BR');
-          meta.textContent = when + (p.coords ? ' · com localização' : '');
-          const actions = document.createElement('div');
-          actions.className = 'actions';
-          const btnMap = document.createElement('button');
-          btnMap.className = 'btn-ghost'; btnMap.textContent = '📍 Rota';
-          if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
-          else { btnMap.disabled = true; }
-          const btnShare = document.createElement('button');
-          btnShare.className = 'btn-ghost'; btnShare.textContent = '🔗 Compartilhar';
-          btnShare.onclick = ()=> shareMessage(p);
-          actions.appendChild(btnMap); actions.appendChild(btnShare);
-
-          card.appendChild(text);
-          card.appendChild(meta);
-          card.appendChild(actions);
-          lista.appendChild(card);
-        } else { // post (foto [+ preço opcional])
-          const card = document.createElement('div'); card.className = 'post';
-          const img = document.createElement('img'); img.className = 'post-img'; img.src = p.img; img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
-          const body = document.createElement('div'); body.className = 'post-body';
-          const title = document.createElement('div'); title.className='post-title';
-
-          const left = document.createElement('div');
-          if (typeof p.valor === 'number' && isFinite(p.valor) && p.valor > 0){
-            const price = document.createElement('div'); price.className='price'; price.textContent = 'R$ ' + Number(p.valor).toFixed(2);
-            left.appendChild(price);
-          } else {
-            const label = document.createElement('div'); label.className='loc'; label.textContent = '📷 Foto';
-            left.appendChild(label);
-          }
-
-          const when = document.createElement('div'); when.className='loc'; when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
-          title.appendChild(left); title.appendChild(when);
-
-          const actions = document.createElement('div'); actions.className='actions';
-          const btnMap = document.createElement('button'); btnMap.className='btn-ghost'; btnMap.textContent='📍 Rota';
-          if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
-          else { btnMap.disabled = true; }
-          const btnShare = document.createElement('button'); btnShare.className='btn-ghost'; btnShare.textContent='🔗 Compartilhar';
-          btnShare.onclick = ()=> sharePost(p);
-          actions.appendChild(btnMap); actions.appendChild(btnShare);
-
-          body.appendChild(title);
-          body.appendChild(actions);
-
-          card.appendChild(img); card.appendChild(body);
-          lista.appendChild(card);
-        }
-      });
+      // Desce para o final (itens mais novos ficam visíveis); o usuário rola para cima para ver antigos
+      lista.scrollTop = lista.scrollHeight;
     }
 
     function sharePost(p){
@@ -740,7 +734,6 @@
       const input = document.getElementById('chatInput');
       let text = (input.value || '').trim();
       if (!text) { input.focus(); return; }
-      const wantLoc = document.getElementById('chatLocToggle').checked;
 
       const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
       const ts = new Date().toISOString();
@@ -751,10 +744,11 @@
         input.value = ''; input.focus();
       };
 
-      if (wantLoc && navigator.geolocation){
+      // SEM toggle: sempre tenta geolocalização
+      if (navigator.geolocation){
         navigator.geolocation.getCurrentPosition(
           pos => add({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          () => add(null),
+          ()  => add(null),
           { enableHighAccuracy:true, timeout:7000 }
         );
       } else add(null);
@@ -788,7 +782,6 @@
           if (Number.isFinite(v) && v > 0) valor = v;
         }
 
-        const wantLoc = document.getElementById('chatLocToggle').checked;
         const postNow = (coords)=> {
           pushFeed({
             type:'post',
@@ -801,10 +794,11 @@
           renderFeed();
         };
 
-        if (wantLoc && navigator.geolocation){
+        // SEM toggle: sempre tenta geolocalização
+        if (navigator.geolocation){
           navigator.geolocation.getCurrentPosition(
             pos => postNow({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            () => postNow(null),
+            ()  => postNow(null),
             { enableHighAccuracy:true, timeout:7000 }
           );
         } else {
@@ -888,7 +882,7 @@
         const imageThumb = thumb.toDataURL('image/jpeg', 0.7);
 
         if (shareToChat) {
-          // localização opcional
+          // localização automática
           navigator.geolocation.getCurrentPosition(async (position) => {
             const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
             pushFeed({
@@ -899,6 +893,8 @@
               img: imageThumb,
               coords
             });
+            renderFeed();
+
             if (SYNC_TO_CLOUD) {
               try {
                 await fetch(`${API_BASE}/api/post`, {
@@ -917,6 +913,8 @@
               img: imageThumb,
               coords: null
             });
+            renderFeed();
+
             if (SYNC_TO_CLOUD) {
               try {
                 await fetch(`${API_BASE}/api/post`, {
@@ -926,7 +924,7 @@
                 });
               } catch(e){ console.warn('cloud post erro:', e); }
             }
-          });
+          }, { enableHighAccuracy:true, timeout:7000 });
         }
       } catch (e) {
         console.warn('snapshot/geo erro:', e);
@@ -937,10 +935,28 @@
     setInterval(capturarImagemEProcessar, 1200);
     iniciarCamera();
     loadState();
-    initShareToggle();
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
