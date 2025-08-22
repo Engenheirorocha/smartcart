@@ -72,8 +72,7 @@
     .videoWrap{
       position: relative; border-radius: 14px; overflow: hidden;
       border: 1px solid var(--card-border); background: rgba(0,0,0,0.35);
-      aspect-ratio: 16/9; box-shadow: var(--shadow);
-      cursor: pointer; /* toque para iniciar no iOS, se precisar */
+      aspect-ratio: 16/9; box-shadow: var(--shadow); cursor:pointer;
     }
     @media (max-width:980px){ .videoWrap{ aspect-ratio:auto; height:56vh } }
     video{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -119,11 +118,7 @@
     .btn.warn{ background: linear-gradient(180deg, rgba(50,40,18,0.9), rgba(38,28,10,0.9)); border-color: rgba(181,148,75,0.45) }
     .btn.err{ background: linear-gradient(180deg, rgba(52,24,24,0.9), rgba(36,16,16,0.9)); border-color: rgba(164,74,74,0.45) }
 
-    /* Destaque de voto ativo */
-    .btn-ghost.active{
-      outline: 2px solid rgba(110,168,254,0.6);
-      outline-offset: 2px;
-    }
+    .btn-ghost.active{ outline: 2px solid rgba(110,168,254,0.6); outline-offset: 2px; }
 
     /* Total */
     #total{
@@ -131,10 +126,7 @@
       padding-top:8px; margin-top:6px; border-top:1px dashed var(--card-border);
     }
 
-    /* Tip */
-    .tip{ font-size:13px; color:var(--muted); border-left:3px solid rgba(110,168,254,0.5); padding-left:10px; }
-
-    /* ===== Modal base ===== */
+    /* Modal base */
     .modal{
       position: fixed; inset: 0; display:none; align-items:center; justify-content:center;
       background: rgba(5,8,20,0.6); backdrop-filter: blur(6px); z-index: 999;
@@ -151,14 +143,12 @@
     .modal-title{ font-weight:700; letter-spacing:.3px }
     .modal-body{ overflow:auto; padding-top:10px; }
 
-    /* RODAPÉ DO CHAT (limpo) */
+    /* RODAPÉ DO CHAT */
     .modal-foot{
       border-top:1px dashed var(--card-border);
       margin-top:10px; padding:10px;
       position:sticky; bottom:0; background:var(--card);
-      display:grid;
-      grid-template-columns: 1fr auto auto; /* [input] [foto] [enviar] */
-      gap:8px; align-items:center;
+      display:grid; grid-template-columns: 1fr auto auto; gap:8px; align-items:center;
     }
     .foot-input{ flex:1; min-width:0; }
     @media (max-width:600px){
@@ -196,7 +186,6 @@
     }
     .btn-ghost[disabled]{ opacity:.5; cursor:not-allowed }
 
-    /* Mensagens de texto no chat (feed) */
     .msg{
       border:1px solid var(--card-border); border-radius:14px; background: rgba(8,12,28,0.5);
       padding:10px 12px; display:flex; flex-direction:column; gap:6px;
@@ -244,26 +233,27 @@
 
       <!-- Linha 1: valor manual + grupo (Qtd + Multiplicar) -->
       <div class="row">
-        <input id="manualInput" class="input" type="number" step="0.01" placeholder="Valor unitário (ex: 0.77)">
+        <input id="manualInput" class="input" type="number" step="0.01" inputmode="decimal" autocomplete="off"
+               placeholder="Valor unitário (ex: 0,77)">
         <div class="mult-group">
           <input id="qtyInput" class="input input-qty" type="number" step="1" min="1" value="2" placeholder="Qtd.">
-          <button class="btn" onclick="multiplicarManual()">× Multiplicar</button>
+          <button class="btn" type="button" onclick="multiplicarManual()">× Multiplicar</button>
         </div>
       </div>
 
       <!-- Linha 2: ações principais -->
       <div class="row">
-        <button class="btn ok" onclick="adicionarManual()">➕ Adicionar</button>
-        <button class="btn warn" onclick="diminuirManual()">➖ Subtrair</button>
-        <button class="btn err" onclick="zerarTotal()">🧹 Zerar Total</button>
+        <button class="btn ok" type="button" onclick="adicionarManual()">➕ Adicionar</button>
+        <button class="btn warn" type="button" onclick="subtrairManual()">➖ Subtrair</button>
+        <button class="btn err" type="button" onclick="zerarTotal()">🧹 Zerar Total</button>
       </div>
 
       <!-- Linha 3: utilidades -->
       <div class="row">
-        <button class="btn err" onclick="limparSugestoes()">❌ Apagar sugestões</button>
-        <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer último</button>
-        <button class="btn" onclick="abrirHistorico(event)">📜 Histórico</button>
-        <button class="btn" onclick="abrirFeed(event)">💬 Chat</button>
+        <button class="btn err" type="button" onclick="limparSugestoes()">❌ Apagar sugestões</button>
+        <button class="btn warn" type="button" onclick="desfazerUltimo()">↩️ Desfazer último</button>
+        <button class="btn" type="button" onclick="abrirHistorico(event)">📜 Histórico</button>
+        <button class="btn" type="button" onclick="abrirFeed(event)">💬 Chat</button>
       </div>
 
       <div id="total">
@@ -292,7 +282,7 @@
   <div id="feedModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="feedTitle">
     <div class="modal-card">
       <div class="modal-head">
-        <div class="modal-title" id="feedTitle"><!-- título removido --></div>
+        <div class="modal-title" id="feedTitle"></div>
         <div style="display:flex; gap:8px">
           <button class="btn" onclick="fecharFeed()">✖ Fechar</button>
         </div>
@@ -304,7 +294,6 @@
         <input id="chatInput" class="input foot-input" type="text" placeholder="Escreva uma mensagem..." />
         <button class="btn" onclick="abrirPickerFoto()">📷 Foto</button>
         <button class="btn ok" onclick="enviarMensagem()">📨 Enviar</button>
-        <!-- input de arquivo escondido -->
         <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
       </div>
     </div>
@@ -316,8 +305,8 @@
   <!-- JS -->
   <script>
     /* ==== Cloud sync (Workers) ==== */
-    const SYNC_TO_CLOUD = false; // troque para true quando tiver seu Worker
-    const API_BASE = "https://smartcart-chat.SEU_SUBDOMINIO.workers.dev"; // sua URL depois
+    const SYNC_TO_CLOUD = false;
+    const API_BASE = "https://smartcart-chat.SEU_SUBDOMINIO.workers.dev";
 
     // id único do aparelho
     const DID_KEY = 'sc_device_id';
@@ -413,7 +402,7 @@
       loadFeed();
     }
 
-    /* ===== Config de envio automático ===== */
+    /* ===== Envio automático para chat / localização ===== */
     const shareToChat = true; // sempre ligado
     function mapsRoute(lat, lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
 
@@ -457,34 +446,23 @@
 
     async function iniciarCamera(){
       let lastErr;
-
       try{
         await startWithConstraints({ video: { facingMode: { exact: 'environment' } }, audio:false });
-        await trySwitchToRearByDeviceId();
-        return;
+        await trySwitchToRearByDeviceId(); return;
       }catch(e){ lastErr = e; }
-
       try{
-        await startWithConstraints({ video: { facingMode: { ideal: 'environment' } }, audio:false });
-        await trySwitchToRearByDeviceId();
-        return;
+        await startWithConstraints({ video: { ideal: { facingMode: 'environment' } }, audio:false });
+        await trySwitchToRearByDeviceId(); return;
       }catch(e){ lastErr = e; }
-
       try{
         await startWithConstraints({ video: true, audio:false });
-        await trySwitchToRearByDeviceId();
-        return;
+        await trySwitchToRearByDeviceId(); return;
       }catch(e){ lastErr = e; }
-
-      try{
-        await startWithConstraints({ video: true, audio:false });
-        return;
-      }catch(e){ lastErr = e; }
-
+      try{ await startWithConstraints({ video: true, audio:false }); return; }
+      catch(e){ lastErr = e; }
       alert("Não foi possível iniciar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
     }
 
-    // Alguns browsers (ex: Safari iOS) exigem gesto do usuário
     function bindCameraAutostart(){
       const wrap = document.querySelector('.videoWrap');
       if (!wrap) return;
@@ -517,20 +495,15 @@
 
       if (isNaN(valor) || valor <= 0){
         alert('Digite primeiro um valor unitário válido.');
-        input.focus();
-        return;
+        input.focus(); return;
       }
       if (!Number.isInteger(qtd) || qtd < 1){
         alert('Quantidade inválida. Use um número inteiro ≥ 1.');
-        qtyEl.focus();
-        return;
+        qtyEl.focus(); return;
       }
       const resultado = valor * qtd;
       input.value = resultado.toFixed(2);
-
-      // feedback leve
-      input.style.transform = 'scale(1.02)';
-      setTimeout(()=>{ input.style.transform = 'scale(1)'; }, 120);
+      input.style.transform = 'scale(1.02)'; setTimeout(()=>{ input.style.transform = 'scale(1)'; }, 120);
     }
 
     function adicionarManual() {
@@ -545,7 +518,7 @@
       input.value=''; input.blur();
     }
 
-    function diminuirManual() {
+    function subtrairManual() {
       const input = document.getElementById('manualInput');
       const valor = parseFloat((input.value || '').replace(',', '.'));
       if (isNaN(valor) || valor <= 0) { alert("Digite um valor válido."); input.value=''; input.focus(); return; }
@@ -565,7 +538,7 @@
       localStorage.removeItem(LS_KEYS.total);
       localStorage.removeItem(LS_KEYS.valores);
       localStorage.removeItem(LS_KEYS.historico);
-      saveFeed(); // não apaga o chat
+      saveFeed();
     }
 
     function desfazerUltimo() {
@@ -594,26 +567,21 @@
         historico.forEach(item => {
           const row = document.createElement('div');
           row.className = 'hist-item';
-          const tipoPill = `<span class="pill ${item.tipo === 'add' ? 'add' : 'sub'}">${item.tipo === 'add' ? 'Adicionar' : 'Diminuir'}</span>`;
+          const tipoPill = `<span class="pill ${item.tipo === 'add' ? 'add' : 'sub'}">${item.tipo === 'add' ? 'Adicionar' : 'Subtrair'}</span>`;
           const valorFmt = (item.tipo === 'add' ? '+' : '-') + ' R$ ' + item.valor.toFixed(2);
           const dateFmt = item.data instanceof Date ? item.data.toLocaleString('pt-BR') : new Date(item.data).toLocaleString('pt-BR');
           row.innerHTML = `
-            <div class="hist-left">
-              ${tipoPill}
-              <span class="hist-val">${valorFmt}</span>
-            </div>
+            <div class="hist-left">${tipoPill}<span class="hist-val">${valorFmt}</span></div>
             <div class="hist-right">
               <div class="hist-time">${dateFmt}</div>
               <div class="hist-time">Total após: R$ ${item.total.toFixed(2)}</div>
-            </div>
-          `;
+            </div>`;
           lista.appendChild(row);
         });
       }
       el.classList.add('show');
     }
     function fecharHistorico(){ document.getElementById('historicoModal').classList.remove('show'); pauseOCR(false); }
-    document.getElementById('historicoModal').addEventListener('click', (e)=>{ if (e.target.id==='historicoModal') fecharHistorico(); });
     document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { fecharHistorico(); fecharFeedInternal(); } });
 
     /* ===== OCR ===== */
@@ -664,8 +632,8 @@
 
     /* ===== Chat/Feed ===== */
     const FEED_LIMIT = 200;
-    let feed = []; // it: {type:'post'|'msg', ...}
-    let feedOpen = false; // controla estado para o botão voltar
+    let feed = [];
+    let feedOpen = false;
 
     function loadFeed(){
       try {
@@ -673,16 +641,13 @@
         if (Array.isArray(f)) feed = f;
       } catch { feed = []; }
     }
-    function saveFeed(){
-      localStorage.setItem(LS_KEYS.feed, JSON.stringify(feed));
-    }
+    function saveFeed(){ localStorage.setItem(LS_KEYS.feed, JSON.stringify(feed)); }
     function pushFeed(item){
       feed.unshift(item);
       if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
       saveFeed();
     }
 
-    // normalização de post (métricas)
     function normalizePost(p){
       if (!p || p.type !== 'post') return p;
       if (typeof p.up !== 'number') p.up = 0;
@@ -691,14 +656,13 @@
       return p;
     }
 
-    // votar: um por usuário (deviceId)
-    function votar(postId, tipo){ // 'up' | 'down'
+    function votar(postId, tipo){
       const idx = feed.findIndex(it => it.type === 'post' && it.id === postId);
       if (idx === -1) return;
       const p = normalizePost(feed[idx]);
 
       const prev = p.voters[deviceId];
-      if (prev === tipo) return; // já votou igual
+      if (prev === tipo) return;
 
       if (prev === 'up' && p.up > 0) p.up--;
       if (prev === 'down' && p.down > 0) p.down--;
@@ -712,79 +676,35 @@
       renderFeed();
     }
 
-    /* ===== Scroll helpers ===== */
-    function getFeedScroller(){
-      return document.getElementById('feedScroll'); // quem de fato rola
-    }
-    function isNearBottom(el){
-      if (!el) return true;
-      return (el.scrollHeight - el.scrollTop - el.clientHeight) < 40;
-    }
+    function getFeedScroller(){ return document.getElementById('feedScroll'); }
+    function isNearBottom(el){ if (!el) return true; return (el.scrollHeight - el.scrollTop - el.clientHeight) < 40; }
     function jumpToBottom(){
       const scroller = getFeedScroller();
       if (!scroller) return;
       requestAnimationFrame(()=>{
         scroller.scrollTop = scroller.scrollHeight;
-        requestAnimationFrame(()=>{
-          scroller.scrollTop = scroller.scrollHeight; // garante após imagens
-        });
+        requestAnimationFrame(()=>{ scroller.scrollTop = scroller.scrollHeight; });
       });
     }
-    function maybeJumpToBottom(){
-      const scroller = getFeedScroller();
-      if (isNearBottom(scroller)) jumpToBottom();
-    }
+    function maybeJumpToBottom(){ const scroller = getFeedScroller(); if (isNearBottom(scroller)) jumpToBottom(); }
 
     async function abrirFeed(e){
       if (e) e.stopPropagation(); pauseOCR(true);
-
-      if (SYNC_TO_CLOUD) {
-        try {
-          const res = await fetch(`${API_BASE}/api/feed?deviceId=${encodeURIComponent(deviceId)}`);
-          const data = await res.json();
-          if (data && data.ok && Array.isArray(data.posts)) {
-            const newPosts = data.posts.map(p => normalizePost({
-              type:'post',
-              id: p.id,
-              ts: p.ts,
-              valor: p.valor,
-              img: p.img,
-              coords: p.coords || null,
-              up: p.up || 0,
-              down: p.down || 0,
-              voters: p.voters || {}
-            }));
-            const msgs = feed.filter(it => it.type === 'msg');
-            feed = [...newPosts, ...msgs].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
-            if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
-            saveFeed();
-          }
-        } catch(e){ console.warn('cloud feed erro:', e); }
-      }
-
       renderFeed();
       document.getElementById('feedModal').classList.add('show');
       feedOpen = true;
       history.pushState({feed:true}, '');
-
-      // ao abrir, cola no fim (mensagem mais recente imediatamente visível)
-      jumpToBottom();
+      jumpToBottom(); // mostra a mais recente imediatamente
     }
 
-    function fecharFeed(){
-      if (feedOpen) history.back();
-    }
+    function fecharFeed(){ if (feedOpen) history.back(); }
     function fecharFeedInternal(){
       const modal = document.getElementById('feedModal');
       if (modal) modal.classList.remove('show');
       feedOpen = false;
       pauseOCR(false);
     }
-    window.addEventListener('popstate', ()=>{
-      if (feedOpen){
-        fecharFeedInternal();
-      }
-    });
+    window.addEventListener('popstate', ()=>{ if (feedOpen){ fecharFeedInternal(); } });
 
     function renderFeed(){
       const lista = document.getElementById('feedLista');
@@ -793,7 +713,7 @@
 
       if (lista) lista.innerHTML = '';
 
-      // ORDEM ASCENDENTE: antigos → novos (novos no fundo)
+      // Antigos → Novos (novos no fundo)
       const items = [...feed].sort((a,b)=> new Date(a.ts) - new Date(b.ts));
 
       if (!items.length){
@@ -836,12 +756,8 @@
             img.className = 'post-img';
             img.src = p.img;
             img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
-            img.loading = 'lazy';
-            img.decoding = 'async';
-            img.onload = () => {
-              const scr = getFeedScroller();
-              if (isNearBottom(scr)) jumpToBottom();
-            };
+            img.loading = 'lazy'; img.decoding = 'async';
+            img.onload = () => { const scr = getFeedScroller(); if (isNearBottom(scr)) jumpToBottom(); };
 
             const body = document.createElement('div'); body.className = 'post-body';
             const title = document.createElement('div'); title.className='post-title';
@@ -855,7 +771,8 @@
               left.appendChild(label);
             }
 
-            const when = document.createElement('div'); when.className='loc'; when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
+            const when = document.createElement('div'); when.className='loc';
+            when.textContent = new Date(p.ts).toLocaleString('pt-BR') + (p.coords ? ' · Com localização' : ' · Sem localização');
             title.appendChild(left); title.appendChild(when);
 
             const actions = document.createElement('div'); actions.className='actions';
@@ -866,42 +783,29 @@
             btnShare.onclick = ()=> sharePost(p);
             actions.appendChild(btnMap); actions.appendChild(btnShare);
 
-            // --- VOTOS ---
             const userVote = p.voters && p.voters[deviceId];
-            const voteWrap = document.createElement('div');
-            voteWrap.style.display = 'flex';
-            voteWrap.style.alignItems = 'center';
-            voteWrap.style.gap = '6px';
+            const voteWrap = document.createElement('div'); voteWrap.style.display='flex'; voteWrap.style.alignItems='center'; voteWrap.style.gap='6px';
 
             const btnUp = document.createElement('button');
             btnUp.className = 'btn-ghost' + (userVote === 'up' ? ' active' : '');
-            btnUp.textContent = '👍';
-            btnUp.onclick = () => votar(p.id, 'up');
+            btnUp.textContent = '👍'; btnUp.onclick = () => votar(p.id, 'up');
 
-            const countSpan = document.createElement('span');
-            countSpan.className = 'loc';
+            const countSpan = document.createElement('span'); countSpan.className='loc';
             countSpan.textContent = `${p.up || 0} · ${p.down || 0}`;
 
             const btnDown = document.createElement('button');
             btnDown.className = 'btn-ghost' + (userVote === 'down' ? ' active' : '');
-            btnDown.textContent = '👎';
-            btnDown.onclick = () => votar(p.id, 'down');
+            btnDown.textContent = '👎'; btnDown.onclick = () => votar(p.id, 'down');
 
-            voteWrap.appendChild(btnUp);
-            voteWrap.appendChild(countSpan);
-            voteWrap.appendChild(btnDown);
-
+            voteWrap.appendChild(btnUp); voteWrap.appendChild(countSpan); voteWrap.appendChild(btnDown);
             actions.appendChild(voteWrap);
 
-            body.appendChild(title);
-            body.appendChild(actions);
-
+            body.appendChild(title); body.appendChild(actions);
             card.appendChild(img); card.appendChild(body);
             lista.appendChild(card);
           }
         });
       }
-
       if (stick) jumpToBottom();
     }
 
@@ -933,17 +837,15 @@
     function enviarMensagem(){
       const input = document.getElementById('chatInput');
       let text = (input.value || '').trim();
-      if (!text) { input.blur(); return; } // teclado só se digitar
+      if (!text) { input.blur(); return; }
 
       const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
       const ts = new Date().toISOString();
 
       const add = (coords)=> {
         pushFeed({ type:'msg', id, ts, text, coords: coords || null, author: deviceId });
-        renderFeed();
-        maybeJumpToBottom();
-        input.value = '';
-        input.blur();
+        renderFeed(); maybeJumpToBottom();
+        input.value = ''; input.blur();
       };
 
       if (navigator.geolocation){
@@ -959,8 +861,7 @@
     function abrirPickerFoto(){
       const input = document.getElementById('photoInput');
       if (!input) return;
-      input.value = '';
-      input.click();
+      input.value = ''; input.click();
     }
 
     document.getElementById('photoInput').addEventListener('change', async (e)=>{
@@ -974,7 +875,7 @@
         const imgDataUrl = await fileToDataURL(file);
         const compressed = await compressImage(imgDataUrl, 1280);
 
-        let priceRaw = prompt('Preço (opcional): ex. 10.50');
+        let priceRaw = prompt('Preço (opcional): ex. 10,50');
         let valor = null;
         if (priceRaw !== null){
           const v = parseFloat((priceRaw || '').replace(',', '.'));
@@ -989,13 +890,9 @@
             valor: (valor !== null ? +valor : undefined),
             img: compressed,
             coords: coords || null,
-            up: 0,
-            down: 0,
-            voters: {},
-            author: deviceId
+            up: 0, down: 0, voters: {}, author: deviceId
           });
-          renderFeed();
-          maybeJumpToBottom();
+          renderFeed(); maybeJumpToBottom();
         };
 
         if (navigator.geolocation){
@@ -1004,22 +901,17 @@
             ()  => postNow(null),
             { enableHighAccuracy:true, timeout:7000 }
           );
-        } else {
-          postNow(null);
-        }
+        } else { postNow(null); }
 
         if (SYNC_TO_CLOUD){
           try{
             await fetch(`${API_BASE}/api/post`, {
               method:'POST',
               headers:{ 'Content-Type':'application/json' },
-              body: JSON.stringify({
-                deviceId, valor: (valor !== null ? +valor : null), coords: null, imageData: compressed
-              })
+              body: JSON.stringify({ deviceId, valor: (valor !== null ? +valor : null), coords: null, imageData: compressed })
             });
           }catch(e){ console.warn('cloud post erro:', e); }
         }
-
       }catch(e){
         console.warn('foto-picker erro:', e);
         alert('Não foi possível processar a imagem.');
@@ -1040,10 +932,7 @@
         const img = new Image();
         img.onload = ()=>{
           let w = img.width, h = img.height;
-          if (w > maxW){
-            const s = maxW / w;
-            w = Math.round(w*s); h = Math.round(h*s);
-          }
+          if (w > maxW){ const s = maxW / w; w = Math.round(w*s); h = Math.round(h*s); }
           const c = document.createElement('canvas');
           c.width = w; c.height = h;
           const ctx = c.getContext('2d');
@@ -1075,20 +964,9 @@
         if (shareToChat) {
           navigator.geolocation.getCurrentPosition(async (position) => {
             const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-            pushFeed({
-              type:'post',
-              id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-              ts: new Date().toISOString(),
-              valor: +valor,
-              img: imageThumb,
-              coords,
-              up: 0,
-              down: 0,
-              voters: {},
-              author: deviceId
-            });
-            renderFeed();
-            maybeJumpToBottom();
+            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7), ts: new Date().toISOString(),
+              valor: +valor, img: imageThumb, coords, up:0, down:0, voters:{}, author: deviceId });
+            renderFeed(); maybeJumpToBottom();
 
             if (SYNC_TO_CLOUD) {
               try {
@@ -1100,20 +978,9 @@
               } catch(e){ console.warn('cloud post erro:', e); }
             }
           }, async () => {
-            pushFeed({
-              type:'post',
-              id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
-              ts: new Date().toISOString(),
-              valor: +valor,
-              img: imageThumb,
-              coords: null,
-              up: 0,
-              down: 0,
-              voters: {},
-              author: deviceId
-            });
-            renderFeed();
-            maybeJumpToBottom();
+            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7), ts: new Date().toISOString(),
+              valor: +valor, img: imageThumb, coords:null, up:0, down:0, voters:{}, author: deviceId });
+            renderFeed(); maybeJumpToBottom();
 
             if (SYNC_TO_CLOUD) {
               try {
@@ -1126,19 +993,42 @@
             }
           }, { enableHighAccuracy:true, timeout:7000 });
         }
-      } catch (e) {
-        console.warn('snapshot/geo erro:', e);
-      }
+      } catch (e) { console.warn('snapshot/geo erro:', e); }
     }
 
     // ===== Inicialização =====
     setInterval(capturarImagemEProcessar, 1200);
-    iniciarCamera();       // tenta iniciar automaticamente
-    bindCameraAutostart(); // e também por gesto, se o browser exigir
+    iniciarCamera();
+    bindCameraAutostart();
     loadState();
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
