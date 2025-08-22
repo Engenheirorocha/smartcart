@@ -73,6 +73,7 @@
       position: relative; border-radius: 14px; overflow: hidden;
       border: 1px solid var(--card-border); background: rgba(0,0,0,0.35);
       aspect-ratio: 16/9; box-shadow: var(--shadow);
+      cursor: pointer; /* para indicar toque para iniciar no iOS */
     }
     @media (max-width:980px){ .videoWrap{ aspect-ratio:auto; height:56vh } }
     video{ width:100%; height:100%; object-fit:cover; display:block; }
@@ -147,7 +148,7 @@
     .modal-title{ font-weight:700; letter-spacing:.3px }
     .modal-body{ overflow:auto; padding-top:10px; }
 
-    /* RODAPÉ DO CHAT AJUSTADO (sem toggle de localização) */
+    /* RODAPÉ DO CHAT (limpo) */
     .modal-foot{
       border-top:1px dashed var(--card-border);
       margin-top:10px; padding:10px;
@@ -174,6 +175,9 @@
     .pill.sub{ color:#ffe0e0; background: rgba(52,24,24,0.6); border-color: rgba(164,74,74,0.45) }
 
     /* ===== Chat/Feed ===== */
+    #feedScroll{ /* container que realmente rola */
+      overflow: auto;
+    }
     .feed{ display:flex; flex-direction:column; gap:12px; }
     .post{
       border:1px solid var(--card-border); border-radius:14px; background: rgba(8,12,28,0.55);
@@ -222,14 +226,14 @@
   <main>
     <!-- Esquerda: câmera + HUD -->
     <section class="card stack">
-      <div class="videoWrap">
+      <div class="videoWrap" title="Toque para iniciar a câmera se necessário">
         <video id="video" autoplay playsinline muted></video>
         <canvas id="overlay"></canvas>
         <div class="hud">
           <span class="tag">Mire a etiqueta dentro do retângulo (50% × 20%)</span>
         </div>
       </div>
-      <div class="tip">A leitura ocorre automaticamente ~a cada 1,2s. Use a câmera traseira e mantenha a etiqueta bem enquadrada.</div>
+      <div class="tip">A leitura ocorre automaticamente ~a cada 1,2s. Use a câmera traseira e mantenha a etiqueta bem enquadrada. Toque na área da câmera se ela não iniciar automaticamente.</div>
     </section>
 
     <!-- Direita: sugestões + controles + total -->
@@ -264,7 +268,6 @@
       <div class="modal-head">
         <div class="modal-title" id="histTitle">Histórico de lançamentos</div>
         <div style="display:flex; gap:8px">
-          <button class="btn warn" onclick="limparHistorico()">🧹 Limpar histórico</button>
           <button class="btn" onclick="fecharHistorico()">✖ Fechar</button>
         </div>
       </div>
@@ -278,13 +281,12 @@
   <div id="feedModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="feedTitle">
     <div class="modal-card">
       <div class="modal-head">
-        <div class="modal-title" id="feedTitle">Chat (timeline de preços)</div>
+        <div class="modal-title" id="feedTitle"><!-- título removido --></div>
         <div style="display:flex; gap:8px">
-          <button class="btn warn" onclick="limparFeed()">🧹 Limpar chat</button>
           <button class="btn" onclick="fecharFeed()">✖ Fechar</button>
         </div>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" id="feedScroll">
         <div id="feedLista" class="feed"></div>
       </div>
       <div class="modal-foot">
@@ -409,25 +411,79 @@
     function pauseOCR(v){ ocrPaused = !!v; }
     document.addEventListener('visibilitychange', ()=>{ pauseOCR(document.hidden); });
 
-    /* ===== Câmera com fallback ===== */
-    async function iniciarCamera() {
-      const modos = [
-        { video: { facingMode: { exact: 'environment' } }, audio: false },
-        { video: { facingMode: { ideal: 'environment' } }, audio: false },
-        { video: true, audio: false }
-      ];
-      let ok = false, lastErr = null;
-      for (const opt of modos) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia(opt);
-          video.srcObject = stream;
-          video.onloadedmetadata = () => { syncOverlayToVideo(); desenharROI(); };
-          window.addEventListener('resize', syncOverlayToVideo);
-          window.addEventListener('orientationchange', syncOverlayToVideo);
-          ok = true; break;
-        } catch (e) { lastErr = e; }
-      }
-      if (!ok) alert("Erro ao acessar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
+    /* ===== Câmera com fallback (traseira prioritária) ===== */
+    let currentStream = null;
+
+    async function startWithConstraints(constraints){
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (currentStream){ currentStream.getTracks().forEach(t => t.stop()); }
+      currentStream = stream;
+      video.srcObject = stream;
+      video.onloadedmetadata = () => { syncOverlayToVideo(); desenharROI(); };
+      window.addEventListener('resize', syncOverlayToVideo);
+      window.addEventListener('orientationchange', syncOverlayToVideo);
+      return stream;
+    }
+
+    function looksLikeBackLabel(label){
+      return /back|trás|traseira|rear|environment|wide|ultra/i.test(label || '');
+    }
+
+    async function trySwitchToRearByDeviceId(){
+      try{
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videos = devices.filter(d => d.kind === 'videoinput');
+        let candidate = videos.find(d => looksLikeBackLabel(d.label));
+        if (!candidate && videos.length) candidate = videos[videos.length - 1];
+        if (candidate){
+          const track = currentStream && currentStream.getVideoTracks()[0];
+          const settings = track ? track.getSettings() : {};
+          if (settings && settings.deviceId === candidate.deviceId) return;
+          await startWithConstraints({ video: { deviceId: { exact: candidate.deviceId } }, audio:false });
+        }
+      }catch(e){ /* ignora troca se falhar */ }
+    }
+
+    async function iniciarCamera(){
+      let lastErr;
+
+      try{
+        await startWithConstraints({ video: { facingMode: { exact: 'environment' } }, audio:false });
+        await trySwitchToRearByDeviceId();
+        return;
+      }catch(e){ lastErr = e; }
+
+      try{
+        await startWithConstraints({ video: { facingMode: { ideal: 'environment' } }, audio:false });
+        await trySwitchToRearByDeviceId();
+        return;
+      }catch(e){ lastErr = e; }
+
+      try{
+        await startWithConstraints({ video: true, audio:false });
+        await trySwitchToRearByDeviceId();
+        return;
+      }catch(e){ lastErr = e; }
+
+      try{
+        await startWithConstraints({ video: true, audio:false });
+        return;
+      }catch(e){ lastErr = e; }
+
+      alert("Não foi possível iniciar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
+    }
+
+    // Alguns browsers (ex: Safari iOS) exigem gesto do usuário
+    function bindCameraAutostart(){
+      const wrap = document.querySelector('.videoWrap');
+      if (!wrap) return;
+      const handler = () => {
+        if (!video.srcObject) iniciarCamera();
+        wrap.removeEventListener('click', handler);
+        wrap.removeEventListener('touchstart', handler);
+      };
+      wrap.addEventListener('click', handler, { once:true });
+      wrap.addEventListener('touchstart', handler, { once:true, passive:true });
     }
 
     /* ===== Somatório ===== */
@@ -451,7 +507,7 @@
       limparSugestoes(); sugestoesFixas = false; bip.play();
       registrar('add', valor);
       saveState();
-      input.value=''; input.focus();
+      input.value=''; input.blur();
     }
 
     function diminuirManual() {
@@ -464,7 +520,7 @@
       limparSugestoes(); sugestoesFixas = false; bip.play();
       registrar('sub', valor);
       saveState();
-      input.value=''; input.focus();
+      input.value=''; input.blur();
     }
 
     function zerarTotal() {
@@ -523,17 +579,7 @@
     }
     function fecharHistorico(){ document.getElementById('historicoModal').classList.remove('show'); pauseOCR(false); }
     document.getElementById('historicoModal').addEventListener('click', (e)=>{ if (e.target.id==='historicoModal') fecharHistorico(); });
-    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { fecharHistorico(); fecharFeed(); } });
-
-    function limparHistorico(){
-      if(!confirm('Limpar todo o histórico de lançamentos?')) return;
-      historico.length = 0;
-      localStorage.removeItem(LS_KEYS.historico);
-      const lista = document.getElementById('historicoLista');
-      if (lista){
-        lista.innerHTML = '<div class="hist-item"><span class="hist-val">Nenhum lançamento ainda</span><span class="hist-time">—</span></div>';
-      }
-    }
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { fecharHistorico(); fecharFeedInternal(); } });
 
     /* ===== OCR ===== */
     async function capturarImagemEProcessar() {
@@ -584,6 +630,7 @@
     /* ===== Chat/Feed ===== */
     const FEED_LIMIT = 200;
     let feed = []; // it: {type:'post'|'msg', ...}
+    let feedOpen = false; // controla estado para o botão voltar
 
     function loadFeed(){
       try {
@@ -630,16 +677,32 @@
       renderFeed();
     }
 
-    // util: checar se o usuário está perto do fim antes de re-render
+    /* ===== Scroll helpers ===== */
+    function getFeedScroller(){
+      return document.getElementById('feedScroll'); // quem de fato rola
+    }
     function isNearBottom(el){
       if (!el) return true;
       return (el.scrollHeight - el.scrollTop - el.clientHeight) < 40;
+    }
+    function jumpToBottom(){
+      const scroller = getFeedScroller();
+      if (!scroller) return;
+      requestAnimationFrame(()=>{
+        scroller.scrollTop = scroller.scrollHeight;
+        requestAnimationFrame(()=>{
+          scroller.scrollTop = scroller.scrollHeight; // garante após imagens
+        });
+      });
+    }
+    function maybeJumpToBottom(){
+      const scroller = getFeedScroller();
+      if (isNearBottom(scroller)) jumpToBottom();
     }
 
     async function abrirFeed(e){
       if (e) e.stopPropagation(); pauseOCR(true);
 
-      // Atualiza posts da nuvem (se habilitar sync)
       if (SYNC_TO_CLOUD) {
         try {
           const res = await fetch(`${API_BASE}/api/feed?deviceId=${encodeURIComponent(deviceId)}`);
@@ -656,7 +719,7 @@
               down: p.down || 0,
               voters: p.voters || {}
             }));
-            const msgs = feed.filter(it => it.type === 'msg'); // preserva mensagens locais
+            const msgs = feed.filter(it => it.type === 'msg');
             feed = [...newPosts, ...msgs].sort((a,b)=> new Date(b.ts) - new Date(a.ts));
             if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
             saveFeed();
@@ -666,36 +729,42 @@
 
       renderFeed();
       document.getElementById('feedModal').classList.add('show');
+      feedOpen = true;
+      history.pushState({feed:true}, '');
 
-      // NÃO focar o input aqui (para não abrir o teclado)
-      // const ci = document.getElementById('chatInput');
-      // if (ci) { ci.addEventListener('keydown', onChatKey); } // opcional
-
-      // ao abrir, colar no fim (mensagem mais recente visível)
-      const lista = document.getElementById('feedLista');
-      if (lista) lista.scrollTop = lista.scrollHeight;
+      // ao abrir, cola no fim (mensagem mais recente imediatamente visível)
+      jumpToBottom();
     }
+
     function fecharFeed(){
-      document.getElementById('feedModal').classList.remove('show'); pauseOCR(false);
-      // remover listeners se tiver adicionado
-      // const ci = document.getElementById('chatInput');
-      // if (ci) ci.removeEventListener('keydown', onChatKey);
+      if (feedOpen) history.back();
     }
-    function onChatKey(e){ if (e.key === 'Enter') enviarMensagem(); }
+    function fecharFeedInternal(){
+      const modal = document.getElementById('feedModal');
+      if (modal) modal.classList.remove('show');
+      feedOpen = false;
+      pauseOCR(false);
+    }
+    window.addEventListener('popstate', ()=>{
+      if (feedOpen){
+        fecharFeedInternal();
+      }
+    });
 
     function renderFeed(){
       const lista = document.getElementById('feedLista');
-      const stick = isNearBottom(lista);
+      const scroller = getFeedScroller();
+      const stick = isNearBottom(scroller); // mede no container correto
 
       if (lista) lista.innerHTML = '';
 
-      // ORDEM ASCENDENTE: antigos → novos
+      // ORDEM ASCENDENTE: antigos → novos (novos no fundo)
       const items = [...feed].sort((a,b)=> new Date(a.ts) - new Date(b.ts));
 
       if (!items.length){
         const empty = document.createElement('div');
         empty.className = 'hist-item';
-        empty.textContent = 'Seu chat está vazio. Envie uma mensagem ou poste uma foto abaixo.';
+        empty.textContent = 'Envie uma mensagem ou poste uma foto abaixo.';
         lista.appendChild(empty);
       } else {
         items.forEach(p=>{
@@ -724,7 +793,7 @@
             card.appendChild(meta);
             card.appendChild(actions);
             lista.appendChild(card);
-          } else { // post (foto [+ preço opcional])
+          } else {
             normalizePost(p);
 
             const card = document.createElement('div'); card.className = 'post';
@@ -734,10 +803,10 @@
             img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
             img.loading = 'lazy';
             img.decoding = 'async';
-            // evita pulo de rolagem quando a imagem termina de carregar
             img.onload = () => {
-              const l = document.getElementById('feedLista');
-              if (isNearBottom(l)) l.scrollTop = l.scrollHeight;
+              // se o usuário está colado no fim, mantém colado após a imagem carregar
+              const scr = getFeedScroller();
+              if (isNearBottom(scr)) jumpToBottom();
             };
 
             const body = document.createElement('div'); body.className = 'post-body';
@@ -756,8 +825,6 @@
             title.appendChild(left); title.appendChild(when);
 
             const actions = document.createElement('div'); actions.className='actions';
-
-            // Ações existentes
             const btnMap = document.createElement('button'); btnMap.className='btn-ghost'; btnMap.textContent='📍 Rota';
             if (p.coords){ btnMap.onclick = ()=> window.open(mapsRoute(p.coords.lat, p.coords.lng), '_blank'); }
             else { btnMap.disabled = true; }
@@ -801,8 +868,8 @@
         });
       }
 
-      // cola no fim somente se usuário já estava perto do fim
-      if (stick && lista) lista.scrollTop = lista.scrollHeight;
+      // se estava colado no fim antes de renderizar, cola de novo no fim
+      if (stick) jumpToBottom();
     }
 
     function sharePost(p){
@@ -833,7 +900,7 @@
     function enviarMensagem(){
       const input = document.getElementById('chatInput');
       let text = (input.value || '').trim();
-      if (!text) { input.blur(); return; } // não abre teclado; só se digitar
+      if (!text) { input.blur(); return; } // teclado só se digitar
 
       const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
       const ts = new Date().toISOString();
@@ -841,11 +908,11 @@
       const add = (coords)=> {
         pushFeed({ type:'msg', id, ts, text, coords: coords || null, author: deviceId });
         renderFeed();
+        maybeJumpToBottom(); // só cola no fim se o usuário já estava no fim
         input.value = '';
-        input.blur(); // fecha teclado depois de enviar
+        input.blur();
       };
 
-      // geolocalização automática
       if (navigator.geolocation){
         navigator.geolocation.getCurrentPosition(
           pos => add({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -859,7 +926,7 @@
     function abrirPickerFoto(){
       const input = document.getElementById('photoInput');
       if (!input) return;
-      input.value = ''; // reset para permitir mesma foto novamente
+      input.value = '';
       input.click();
     }
 
@@ -872,9 +939,8 @@
     async function handleFotoSelecionada(file){
       try{
         const imgDataUrl = await fileToDataURL(file);
-        const compressed = await compressImage(imgDataUrl, 1280); // largura máx 1280
+        const compressed = await compressImage(imgDataUrl, 1280);
 
-        // Preço opcional
         let priceRaw = prompt('Preço (opcional): ex. 10.50');
         let valor = null;
         if (priceRaw !== null){
@@ -895,9 +961,9 @@
             voters: {}
           });
           renderFeed();
+          maybeJumpToBottom();
         };
 
-        // geolocalização automática
         if (navigator.geolocation){
           navigator.geolocation.getCurrentPosition(
             pos => postNow({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -948,20 +1014,12 @@
           c.width = w; c.height = h;
           const ctx = c.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
-          const out = c.toDataURL('image/jpeg', 0.7); // qualidade 0.7
+          const out = c.toDataURL('image/jpeg', 0.7);
           resolve(out);
         };
-        img.onerror = ()=> resolve(dataUrl); // fallback: sem compressão
+        img.onerror = ()=> resolve(dataUrl);
         img.src = dataUrl;
       });
-    }
-
-    /* ===== Limpar chat ===== */
-    function limparFeed(){
-      if (!confirm('Limpar todo o chat?')) return;
-      feed = [];
-      saveFeed();
-      renderFeed();
     }
 
     /* ===== Captura foto + envia para chat (post) automática ao somar ===== */
@@ -995,6 +1053,7 @@
               voters: {}
             });
             renderFeed();
+            maybeJumpToBottom();
 
             if (SYNC_TO_CLOUD) {
               try {
@@ -1018,6 +1077,7 @@
               voters: {}
             });
             renderFeed();
+            maybeJumpToBottom();
 
             if (SYNC_TO_CLOUD) {
               try {
@@ -1037,11 +1097,33 @@
 
     // ===== Inicialização =====
     setInterval(capturarImagemEProcessar, 1200);
-    iniciarCamera();
+    iniciarCamera();       // tenta iniciar automaticamente
+    bindCameraAutostart(); // e também por gesto, se o browser exigir
     loadState();
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
