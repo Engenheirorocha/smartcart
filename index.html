@@ -35,7 +35,7 @@
       background: var(--bg); background-image: var(--bg-grad);
     }
 
-    /* Header centrado com carrinho */
+    /* Header */
     header{
       position: sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
@@ -306,7 +306,7 @@
     const SYNC_TO_CLOUD = false; // troque para true quando tiver seu Worker
     const API_BASE = "https://smartcart-chat.SEU_SUBDOMINIO.workers.dev"; // sua URL depois
 
-    // id único do aparelho (use o mesmo nos dois devices se quiser ver o mesmo feed)
+    // id único do aparelho
     const DID_KEY = 'sc_device_id';
     let deviceId = localStorage.getItem(DID_KEY);
     if (!deviceId) {
@@ -401,8 +401,7 @@
     }
 
     /* ===== Config de envio automático ===== */
-    // Enviar para o chat: sempre ligado
-    const shareToChat = true;
+    const shareToChat = true; // sempre ligado
     function mapsRoute(lat, lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
 
     /* ===== Controle OCR pausa/retoma ===== */
@@ -440,7 +439,7 @@
       if (btn) { btn.classList.add('pulse'); setTimeout(()=>btn.classList.remove('pulse'), 300); }
       registrar('add', valor);
       saveState();
-      capturarEEnviarImagem(valor); // mantém a captura automática ao adicionar preço (sempre com envio ativo)
+      capturarEEnviarImagem(valor);
     }
 
     function adicionarManual() {
@@ -526,7 +525,6 @@
     document.getElementById('historicoModal').addEventListener('click', (e)=>{ if (e.target.id==='historicoModal') fecharHistorico(); });
     document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') { fecharHistorico(); fecharFeed(); } });
 
-    // limpar histórico (botão do modal)
     function limparHistorico(){
       if(!confirm('Limpar todo o histórico de lançamentos?')) return;
       historico.length = 0;
@@ -630,9 +628,6 @@
       feed[idx] = p;
       saveFeed();
       renderFeed();
-
-      // (futuro) sync com backend
-      // if (SYNC_TO_CLOUD) fetch(`${API_BASE}/api/vote`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ postId, deviceId, tipo }) });
     }
 
     // util: checar se o usuário está perto do fim antes de re-render
@@ -672,17 +667,19 @@
       renderFeed();
       document.getElementById('feedModal').classList.add('show');
 
-      const ci = document.getElementById('chatInput');
-      if (ci) { ci.focus(); ci.addEventListener('keydown', onChatKey); }
+      // NÃO focar o input aqui (para não abrir o teclado)
+      // const ci = document.getElementById('chatInput');
+      // if (ci) { ci.addEventListener('keydown', onChatKey); } // opcional
 
-      // ao abrir, colar no fim
+      // ao abrir, colar no fim (mensagem mais recente visível)
       const lista = document.getElementById('feedLista');
       if (lista) lista.scrollTop = lista.scrollHeight;
     }
     function fecharFeed(){
       document.getElementById('feedModal').classList.remove('show'); pauseOCR(false);
-      const ci = document.getElementById('chatInput');
-      if (ci) ci.removeEventListener('keydown', onChatKey);
+      // remover listeners se tiver adicionado
+      // const ci = document.getElementById('chatInput');
+      // if (ci) ci.removeEventListener('keydown', onChatKey);
     }
     function onChatKey(e){ if (e.key === 'Enter') enviarMensagem(); }
 
@@ -731,7 +728,18 @@
             normalizePost(p);
 
             const card = document.createElement('div'); card.className = 'post';
-            const img = document.createElement('img'); img.className = 'post-img'; img.src = p.img; img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
+            const img = document.createElement('img');
+            img.className = 'post-img';
+            img.src = p.img;
+            img.alt = p.valor ? `Preço: R$ ${Number(p.valor).toFixed(2)}` : 'Foto enviada';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            // evita pulo de rolagem quando a imagem termina de carregar
+            img.onload = () => {
+              const l = document.getElementById('feedLista');
+              if (isNearBottom(l)) l.scrollTop = l.scrollHeight;
+            };
+
             const body = document.createElement('div'); body.className = 'post-body';
             const title = document.createElement('div'); title.className='post-title';
 
@@ -825,7 +833,7 @@
     function enviarMensagem(){
       const input = document.getElementById('chatInput');
       let text = (input.value || '').trim();
-      if (!text) { input.focus(); return; }
+      if (!text) { input.blur(); return; } // não abre teclado; só se digitar
 
       const id = Date.now() + '_' + Math.random().toString(36).slice(2,7);
       const ts = new Date().toISOString();
@@ -833,7 +841,8 @@
       const add = (coords)=> {
         pushFeed({ type:'msg', id, ts, text, coords: coords || null, author: deviceId });
         renderFeed();
-        input.value = ''; input.focus();
+        input.value = '';
+        input.blur(); // fecha teclado depois de enviar
       };
 
       // geolocalização automática
@@ -899,7 +908,6 @@
           postNow(null);
         }
 
-        // (Opcional) enviar à nuvem
         if (SYNC_TO_CLOUD){
           try{
             await fetch(`${API_BASE}/api/post`, {
@@ -1034,6 +1042,26 @@
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
