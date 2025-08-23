@@ -14,29 +14,23 @@
   <style>
 /* =========================
    Smart Cart – UI Refresh
-   Paleta + Botões + Cards
    ========================= */
 
 :root{
-  /* Paleta */
   --bg:#141a32;
   --bg-grad:
     radial-gradient(1200px 600px at 10% 10%, #1b2550 0%, transparent 60%),
     radial-gradient(900px 500px at 90% 20%, #123046 0%, transparent 55%),
     radial-gradient(1100px 700px at 50% 120%, #1b1f3c 0%, #141a32 60%);
-
   --card: rgba(28,32,60,0.85);
   --card-border: rgba(124,140,200,0.20);
   --text:#eef2ff;
   --muted:#aeb7d4;
-  --accent:#7fb4ff;
   --ok:#34d399;
   --warn:#f5c56a;
   --err:#ff7a7a;
-
   --shadow: 0 10px 28px rgba(6,12,32,0.40), inset 0 1px rgba(255,255,255,0.05);
 
-  /* Compactação/altura mínima */
   --action-font: clamp(12px, 1.2vw, 14px);
   --action-pad-v: clamp(6px, 1vw, 8px);
   --action-pad-h: clamp(8px, 1.2vw, 10px);
@@ -59,7 +53,10 @@ header{
   background: linear-gradient(180deg, rgba(10,14,32,0.65), rgba(10,14,32,0.25));
   border-bottom: 1px solid var(--card-border);
 }
-.wrap{ max-width:1200px; margin:0 auto; padding:14px 18px; display:flex; justify-content:center; }
+.wrap{
+  max-width:1200px; margin:0 auto; padding:14px 18px;
+  display:flex; justify-content:center; position:relative;
+}
 .brand{ display:flex; align-items:center; gap:12px; }
 .logo{
   width:34px; height:34px; border-radius:10px;
@@ -69,6 +66,19 @@ header{
 }
 .logo svg{ width:20px; height:20px; stroke:#ffffff; }
 h1{ font-size:18px; font-weight:700; margin:0; letter-spacing:.2px }
+
+/* Botão histórico no cabeçalho (ícone, canto esquerdo) */
+.icon-btn{
+  position:absolute; left:12px; top:50%; transform:translateY(-50%);
+  border:1px solid var(--card-border);
+  background: linear-gradient(180deg, rgba(14,20,42,0.85), rgba(10,16,34,0.85));
+  color:var(--text);
+  padding:8px 10px; border-radius:10px; cursor:pointer;
+  box-shadow: 0 6px 16px rgba(6,12,32,0.25);
+  line-height:1; display:flex; align-items:center; justify-content:center;
+}
+.icon-btn:hover{ filter:brightness(1.03); transform:translateY(-50%) translateY(-1px); }
+.icon-btn:active{ filter:brightness(0.98); transform:translateY(-50%); }
 
 /* Layout principal */
 main{
@@ -136,8 +146,6 @@ video{ width:100%; height:100%; object-fit:cover; display:block; }
   background: rgba(10,14,32,0.65);
 }
 .input-qty{ text-align:center; }
-
-/* Remover setas do number (opcional) */
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
 input[type=number]{ -moz-appearance:textfield; }
@@ -159,32 +167,15 @@ input[type=number]{ -moz-appearance:textfield; }
 
 .btn.ok{
   background: linear-gradient(180deg, rgba(22,56,42,0.95), rgba(18,44,34,0.95));
-  border-color: rgba(52,211,153,0.55);
-  color:#e8fff6;
+  border-color: rgba(52,211,153,0.55); color:#e8fff6;
 }
-.btn.ok:hover{
-  box-shadow: 0 10px 24px rgba(36,160,120,0.35), 0 0 0 1px rgba(52,211,153,0.35) inset;
-  border-color: rgba(52,211,153,0.75);
-}
-
 .btn.warn{
   background: linear-gradient(180deg, rgba(58,46,20,0.95), rgba(42,32,14,0.95));
-  border-color: rgba(245,197,106,0.55);
-  color:#fff3da;
+  border-color: rgba(245,197,106,0.55); color:#fff3da;
 }
-.btn.warn:hover{
-  box-shadow: 0 10px 24px rgba(210,165,75,0.35), 0 0 0 1px rgba(245,197,106,0.35) inset;
-  border-color: rgba(245,197,106,0.75);
-}
-
 .btn.err{
   background: linear-gradient(180deg, rgba(64,28,28,0.96), rgba(40,18,18,0.96));
-  border-color: rgba(255,122,122,0.55);
-  color:#ffecec;
-}
-.btn.err:hover{
-  box-shadow: 0 10px 24px rgba(160,70,70,0.35), 0 0 0 1px rgba(255,122,122,0.35) inset;
-  border-color: rgba(255,122,122,0.75);
+  border-color: rgba(255,122,122,0.55); color:#ffecec;
 }
 
 /* Grids/linhas */
@@ -199,8 +190,7 @@ input[type=number]{ -moz-appearance:textfield; }
 }
 .manual-actions > *{ min-width:0; }
 
-/* Linha 2: Qtd / Mult / Zerar / Desfazer / (vazio)
-   — AQUI o ajuste proporcional: 3ª e 4ª colunas com 1.2fr */
+/* Linha 2: Qtd / × Mult. / 🧹 Zerar / ↩️ Desfazer / (espaço) */
 .actions-grid-5{
   display:grid;
   grid-template-columns: 1fr 1fr 1.2fr 1.2fr 0.0001fr;
@@ -208,9 +198,7 @@ input[type=number]{ -moz-appearance:textfield; }
   align-items:stretch;
 }
 .actions-grid-5 > *{
-  min-width:0;
-  width:100%;
-  height:100%;
+  min-width:0; width:100%; height:100%;
   font-size: var(--action-font);
   padding: var(--action-pad-v) var(--action-pad-h);
 }
@@ -264,7 +252,7 @@ input[type=number]{ -moz-appearance:textfield; }
 .pill.add{ color:#d9ffe9; background: rgba(24,42,30,0.7); border-color: rgba(72,140,92,0.45) }
 .pill.sub{ color:#ffe0e0; background: rgba(52,24,24,0.6); border-color: rgba(164,74,74,0.45) }
 
-/* Chat/Feed */
+/* Feed */
 #feedScroll{ overflow: auto; }
 .feed{ display:flex; flex-direction:column; gap:12px; }
 .post{
@@ -295,6 +283,10 @@ input[type=number]{ -moz-appearance:textfield; }
   <!-- Header -->
   <header>
     <div class="wrap">
+      <!-- Ícone do Histórico (esquerda) -->
+      <button class="icon-btn" onclick="abrirHistorico(event)" title="Histórico">📜</button>
+
+      <!-- Marca central -->
       <div class="brand">
         <div class="logo" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -335,19 +327,18 @@ input[type=number]{ -moz-appearance:textfield; }
         <button class="btn warn" onclick="diminuirManual()" title="Subtrair valor">➖ Subtrair</button>
       </div>
 
-      <!-- Linha 2: Qtd / × Mult. / 🧹 Zerar / ↩️ Desfazer / (vazio para manter layout) -->
+      <!-- Linha 2: Qtd / × Mult. / 🧹 Zerar / ↩️ Desfazer / (vazio) -->
       <div class="actions-grid-5">
         <input id="qtyInput" class="input input-qty" type="number" step="1" min="1" value="2" placeholder="Qtd.">
         <button class="btn" onclick="multiplicarManual()">× Mult.</button>
         <button class="btn err" onclick="zerarTotal()">🧹 Zerar</button>
         <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer</button>
-        <!-- intencionalmente vazio -->
+        <!-- vazio para balancear o grid -->
       </div>
 
       <!-- Linha 3: utilidades -->
       <div class="row">
-        <button class="btn" onclick="abrirHistorico(event)">📜 Histórico</button>
-        <button class="btn" onclick="abrirFeed(event)">💬 Chat</button>
+        <button class="btn" onclick="abrirFeed(event)">🔎 Radar de preços</button>
       </div>
 
       <div id="total">
@@ -372,7 +363,7 @@ input[type=number]{ -moz-appearance:textfield; }
     </div>
   </div>
 
-  <!-- Modal Chat/Feed -->
+  <!-- Modal Feed -->
   <div id="feedModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="feedTitle">
     <div class="modal-card">
       <div class="modal-head">
@@ -388,7 +379,6 @@ input[type=number]{ -moz-appearance:textfield; }
         <input id="chatInput" class="input foot-input" type="text" placeholder="Escreva uma mensagem..." />
         <button class="btn" onclick="abrirPickerFoto()">📷 Foto</button>
         <button class="btn ok" onclick="enviarMensagem()">📨 Enviar</button>
-        <!-- input de arquivo escondido -->
         <input id="photoInput" type="file" accept="image/*" capture="environment" style="display:none" />
       </div>
     </div>
@@ -400,8 +390,8 @@ input[type=number]{ -moz-appearance:textfield; }
   <!-- JS -->
   <script>
     /* ==== Cloud sync (Workers) ==== */
-    const SYNC_TO_CLOUD = false; // troque para true quando tiver seu Worker
-    const API_BASE = "https://smartcart-chat.SEU_SUBDOMINIO.workers.dev"; // sua URL depois
+    const SYNC_TO_CLOUD = false;
+    const API_BASE = "https://smartcart-chat.SEU_SUBDOMINIO.workers.dev";
 
     // id único do aparelho
     const DID_KEY = 'sc_device_id';
@@ -431,7 +421,7 @@ input[type=number]{ -moz-appearance:textfield; }
     // OCR cooldown / TTL
     let lastSuggestionsAt = 0;
     const SUGGESTIONS_COOLDOWN = 1200;
-    const SUGGESTIONS_TTL_MS   = 8000; // auto-expira sugestões antigas
+    const SUGGESTIONS_TTL_MS   = 8000;
 
     // ROI
     const roi = { x:0, y:0, w:0, h:0 };
@@ -499,14 +489,14 @@ input[type=number]{ -moz-appearance:textfield; }
     }
 
     /* ===== Config de envio automático ===== */
-    const shareToChat = true; // sempre ligado
+    const shareToChat = true;
     function mapsRoute(lat, lng){ return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`; }
 
     /* ===== Controle OCR pausa/retoma ===== */
     let ocrPaused = false;
     function pauseOCR(v){
       ocrPaused = !!v;
-      if (ocrPaused) limparSugestoes(); // limpa sugestões ao pausar
+      if (ocrPaused) limparSugestoes();
     }
     document.addEventListener('visibilitychange', ()=>{ pauseOCR(document.hidden); });
 
@@ -545,7 +535,6 @@ input[type=number]{ -moz-appearance:textfield; }
 
     async function iniciarCamera(){
       let lastErr;
-
       try{
         await startWithConstraints({ video: { facingMode: { exact: 'environment' } }, audio:false });
         await trySwitchToRearByDeviceId();
@@ -569,21 +558,51 @@ input[type=number]{ -moz-appearance:textfield; }
         return;
       }catch(e){ lastErr = e; }
 
-      alert("Não foi possível iniciar a câmera: " + (lastErr && lastErr.message ? lastErr.message : lastErr));
+      console.warn("Não foi possível iniciar a câmera:", lastErr);
+    }
+
+    // Reforços pra garantir a câmera ligada
+    async function ensureCamera(){
+      try{
+        // se não há stream ou vídeo não está pronto, tenta iniciar
+        if (!video.srcObject || !video.srcObject.active || video.readyState < 2){
+          await iniciarCamera();
+        } else {
+          // se track está "ended", reinicia
+          const tracks = video.srcObject.getVideoTracks();
+          if (!tracks.length || tracks[0].readyState === 'ended'){
+            await iniciarCamera();
+          }
+        }
+      }catch(e){
+        // silencia tentativa; alguns navegadores exigem gesto
+      }
     }
 
     // Alguns browsers (ex: Safari iOS) exigem gesto do usuário
     function bindCameraAutostart(){
       const wrap = document.querySelector('.videoWrap');
       if (!wrap) return;
-      const handler = () => {
-        if (!video.srcObject) iniciarCamera();
-        wrap.removeEventListener('click', handler);
-        wrap.removeEventListener('touchstart', handler);
+      const handler = async () => {
+        await ensureCamera();
       };
-      wrap.addEventListener('click', handler, { once:true });
-      wrap.addEventListener('touchstart', handler, { once:true, passive:true });
+      wrap.addEventListener('click', handler);
+      wrap.addEventListener('touchstart', handler, { passive:true });
     }
+
+    // Pingar de tempos em tempos pra reativar se cair
+    setInterval(ensureCamera, 4000);
+    window.addEventListener('focus', ensureCamera);
+
+    // Permissões (quando disponível) — ajuda a “destravar” em alguns navegadores
+    (async ()=>{
+      try{
+        if (navigator.permissions && navigator.permissions.query){
+          const res = await navigator.permissions.query({ name: 'camera' });
+          res.onchange = ()=>{ if (res.state === 'granted') ensureCamera(); };
+        }
+      }catch(e){}
+    })();
 
     /* ===== Somatório ===== */
     function adicionarPreco(valor, btn) {
@@ -616,7 +635,6 @@ input[type=number]{ -moz-appearance:textfield; }
       const resultado = valor * qtd;
       input.value = resultado.toFixed(2);
 
-      // feedback leve
       input.style.transform = 'scale(1.02)';
       setTimeout(()=>{ input.style.transform = 'scale(1)'; }, 120);
     }
@@ -759,10 +777,10 @@ input[type=number]{ -moz-appearance:textfield; }
       }
     }, 1000);
 
-    /* ===== Chat/Feed ===== */
+    /* ===== Feed ===== */
     const FEED_LIMIT = 200;
-    let feed = []; // it: {type:'post'|'msg', ...}
-    let feedOpen = false; // controla estado para o botão voltar
+    let feed = []; // {type:'post'|'msg', ...}
+    let feedOpen = false;
 
     function loadFeed(){
       try {
@@ -770,9 +788,7 @@ input[type=number]{ -moz-appearance:textfield; }
         if (Array.isArray(f)) feed = f;
       } catch { feed = []; }
     }
-    function saveFeed(){
-      localStorage.setItem(LS_KEYS.feed, JSON.stringify(feed));
-    }
+    function saveFeed(){ localStorage.setItem(LS_KEYS.feed, JSON.stringify(feed)); }
     function pushFeed(item){
       feed.unshift(item);
       if (feed.length > FEED_LIMIT) feed.length = FEED_LIMIT;
@@ -787,7 +803,7 @@ input[type=number]{ -moz-appearance:textfield; }
       return p;
     }
 
-    function votar(postId, tipo){ // 'up' | 'down'
+    function votar(postId, tipo){
       const idx = feed.findIndex(it => it.type === 'post' && it.id === postId);
       if (idx === -1) return;
       const p = normalizePost(feed[idx]);
@@ -1029,7 +1045,7 @@ input[type=number]{ -moz-appearance:textfield; }
       } else add(null);
     }
 
-    /* ===== Botão de foto no chat ===== */
+    /* ===== Botão de foto no feed ===== */
     function abrirPickerFoto(){
       const input = document.getElementById('photoInput');
       if (!input) return;
@@ -1126,7 +1142,7 @@ input[type=number]{ -moz-appearance:textfield; }
       });
     }
 
-    /* ===== Captura foto + envia para chat (post) automática ao somar ===== */
+    /* ===== Captura foto + envia para feed ao somar ===== */
     async function capturarEEnviarImagem(valor) {
       try {
         const fullCanvas = document.createElement('canvas');
@@ -1203,8 +1219,12 @@ input[type=number]{ -moz-appearance:textfield; }
 
     // ===== Inicialização =====
     setInterval(capturarImagemEProcessar, 1200);
-    iniciarCamera();       // tenta iniciar automaticamente
-    bindCameraAutostart(); // e também por gesto, se o browser exigir
+    // força a câmera logo no carregamento
+    (async ()=>{
+      await ensureCamera();
+      bindCameraAutostart();
+    })();
+
     loadState();
   </script>
 </body>
