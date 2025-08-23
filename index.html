@@ -36,7 +36,7 @@
 
   --shadow: 0 10px 28px rgba(6,12,32,0.40), inset 0 1px rgba(255,255,255,0.05);
 
-  /* Compactação da linha de 5 itens */
+  /* Compactação/altura mínima */
   --action-font: clamp(12px, 1.2vw, 14px);
   --action-pad-v: clamp(6px, 1vw, 8px);
   --action-pad-h: clamp(8px, 1.2vw, 10px);
@@ -187,24 +187,23 @@ input[type=number]{ -moz-appearance:textfield; }
   border-color: rgba(255,122,122,0.75);
 }
 
-/* Grids das ações */
+/* Grids/linhas */
 .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
 
-/* Linha de atalhos agora com 3 colunas: [+] [Valor] [–] */
+/* Linha 1: [+] [Valor] [–] */
 .manual-actions{
   display:grid;
   grid-template-columns: 1fr 1.4fr 1fr;
   gap:10px;
   align-items:stretch;
 }
-.manual-actions > *{
-  min-width:0;
-}
+.manual-actions > *{ min-width:0; }
 
-/* Linha única com 5 itens (permanece como está) */
+/* Linha 2: Qtd / Mult / Zerar / Desfazer / (vazio)
+   — AQUI o ajuste proporcional: 3ª e 4ª colunas com 1.2fr */
 .actions-grid-5{
   display:grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr 1.2fr 1.2fr 0.0001fr;
   gap:8px;
   align-items:stretch;
 }
@@ -329,20 +328,20 @@ input[type=number]{ -moz-appearance:textfield; }
       <div class="title">Sugestões de preço</div>
       <div id="precos"></div>
 
-      <!-- Linha 1: agora [+] [Valor] [–] -->
+      <!-- Linha 1: [+] [Valor] [–] -->
       <div class="manual-actions">
         <button class="btn ok" onclick="adicionarManual()" title="Somar valor">➕ Adicionar</button>
         <input id="manualInput" class="input" type="number" step="0.01" placeholder="Valor (ex: 0.77)">
         <button class="btn warn" onclick="diminuirManual()" title="Subtrair valor">➖ Subtrair</button>
       </div>
 
-      <!-- Linha 2: permanece igual (pode ficar com 4 itens mesmo) -->
+      <!-- Linha 2: Qtd / × Mult. / 🧹 Zerar / ↩️ Desfazer / (vazio para manter layout) -->
       <div class="actions-grid-5">
         <input id="qtyInput" class="input input-qty" type="number" step="1" min="1" value="2" placeholder="Qtd.">
         <button class="btn" onclick="multiplicarManual()">× Mult.</button>
         <button class="btn err" onclick="zerarTotal()">🧹 Zerar</button>
         <button class="btn warn" onclick="desfazerUltimo()">↩️ Desfazer</button>
-        <!-- coluna restante intencionalmente vazia para não mexer no restante -->
+        <!-- intencionalmente vazio -->
       </div>
 
       <!-- Linha 3: utilidades -->
@@ -1030,7 +1029,7 @@ input[type=number]{ -moz-appearance:textfield; }
       } else add(null);
     }
 
-    /* ===== Foto no chat ===== */
+    /* ===== Botão de foto no chat ===== */
     function abrirPickerFoto(){
       const input = document.getElementById('photoInput');
       if (!input) return;
@@ -1127,7 +1126,7 @@ input[type=number]{ -moz-appearance:textfield; }
       });
     }
 
-    /* ===== Snapshot automático no somar ===== */
+    /* ===== Captura foto + envia para chat (post) automática ao somar ===== */
     async function capturarEEnviarImagem(valor) {
       try {
         const fullCanvas = document.createElement('canvas');
@@ -1146,8 +1145,20 @@ input[type=number]{ -moz-appearance:textfield; }
         if (shareToChat) {
           navigator.geolocation.getCurrentPosition(async (position) => {
             const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
-            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7), ts: new Date().toISOString(), valor:+valor, img:imageThumb, coords, up:0, down:0, voters:{}, author:deviceId });
-            renderFeed(); maybeJumpToBottom();
+            pushFeed({
+              type:'post',
+              id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+              ts: new Date().toISOString(),
+              valor: +valor,
+              img: imageThumb,
+              coords,
+              up: 0,
+              down: 0,
+              voters: {},
+              author: deviceId
+            });
+            renderFeed();
+            maybeJumpToBottom();
 
             if (SYNC_TO_CLOUD) {
               try {
@@ -1159,8 +1170,20 @@ input[type=number]{ -moz-appearance:textfield; }
               } catch(e){ console.warn('cloud post erro:', e); }
             }
           }, async () => {
-            pushFeed({ type:'post', id: Date.now() + '_' + Math.random().toString(36).slice(2,7), ts: new Date().toISOString(), valor:+valor, img:imageThumb, coords:null, up:0, down:0, voters:{}, author:deviceId });
-            renderFeed(); maybeJumpToBottom();
+            pushFeed({
+              type:'post',
+              id: Date.now() + '_' + Math.random().toString(36).slice(2,7),
+              ts: new Date().toISOString(),
+              valor: +valor,
+              img: imageThumb,
+              coords: null,
+              up: 0,
+              down: 0,
+              voters: {},
+              author: deviceId
+            });
+            renderFeed();
+            maybeJumpToBottom();
 
             if (SYNC_TO_CLOUD) {
               try {
